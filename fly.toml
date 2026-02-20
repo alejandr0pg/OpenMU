@@ -27,7 +27,7 @@ primary_region = "dfw"
 
   [[services.http_checks]]
     interval = 15000
-    grace_period = "30s"
+    grace_period = "10m"
     method = "GET"
     path = "/"
     protocol = "http"
@@ -44,7 +44,7 @@ primary_region = "dfw"
   [[services.tcp_checks]]
     interval = 15000
     timeout = 5000
-    grace_period = "30s"
+    grace_period = "10m"
 
 # Game Server 1 (TCP)
 [[services]]
@@ -57,7 +57,7 @@ primary_region = "dfw"
   [[services.tcp_checks]]
     interval = 15000
     timeout = 5000
-    grace_period = "30s"
+    grace_period = "10m"
 
 # Chat Server (TCP)
 [[services]]
@@ -70,7 +70,7 @@ primary_region = "dfw"
   [[services.tcp_checks]]
     interval = 15000
     timeout = 5000
-    grace_period = "30s"
+    grace_period = "10m"
 
 [[vm]]
   size = "shared-cpu-2x"
