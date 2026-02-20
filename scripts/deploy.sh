@@ -3,7 +3,7 @@ set -euo pipefail
 
 APP_NAME="lara-mu"
 DB_NAME="lara-mu-db"
-REGION="mia"
+REGION="dfw"
 FIRST_DEPLOY="${1:-false}"
 
 log() { echo "==> $*"; }
