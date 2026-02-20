@@ -1,0 +1,77 @@
+app = "openmu-server"
+primary_region = "mia"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  ASPNETCORE_URLS = "http://+:8080"
+
+# Admin Panel (HTTP)
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 100
+    soft_limit = 80
+
+  [[services.http_checks]]
+    interval = 15000
+    grace_period = "30s"
+    method = "GET"
+    path = "/"
+    protocol = "http"
+    timeout = 5000
+
+# Connect Server (TCP)
+[[services]]
+  internal_port = 44405
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 44405
+
+  [[services.tcp_checks]]
+    interval = 15000
+    timeout = 5000
+    grace_period = "30s"
+
+# Game Server 1 (TCP)
+[[services]]
+  internal_port = 55901
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 55901
+
+  [[services.tcp_checks]]
+    interval = 15000
+    timeout = 5000
+    grace_period = "30s"
+
+# Chat Server (TCP)
+[[services]]
+  internal_port = 55980
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 55980
+
+  [[services.tcp_checks]]
+    interval = 15000
+    timeout = 5000
+    grace_period = "30s"
+
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "1gb"
