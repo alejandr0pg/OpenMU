@@ -1,4 +1,4 @@
-app = "openmu-server"
+app = "lara-mu"
 primary_region = "mia"
 
 [build]

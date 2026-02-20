@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_NAME="openmu-server"
-DB_NAME="openmu-db"
+APP_NAME="lara-mu"
+DB_NAME="lara-mu-db"
 REGION="mia"
 FIRST_DEPLOY="${1:-false}"
 

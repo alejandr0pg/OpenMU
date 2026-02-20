@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_NAME="openmu-server"
+APP_NAME="lara-mu"
 PORTS=(44405 55901 55980)
 PORT_NAMES=("Connect Server" "Game Server" "Chat Server")
 
