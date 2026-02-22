@@ -128,8 +128,8 @@ public class AppearanceSerializerExtended : IAppearanceSerializer
         var unshinyItem = new UnshinyItem(data);
         if (item?.Definition is null)
         {
-            unshinyItem.Group = 0xF;
-            unshinyItem.Number = 0xFFF;
+            unshinyItem.Group = 0x1F;
+            unshinyItem.Number = 0x7FF;
         }
         else
         {
@@ -143,8 +143,8 @@ public class AppearanceSerializerExtended : IAppearanceSerializer
         var shinyItem = new ShinyItem(data);
         if (item?.Definition is null)
         {
-            shinyItem.Group = 0xF;
-            shinyItem.Number = 0xFFF;
+            shinyItem.Group = 0x1F;
+            shinyItem.Number = 0x7FF;
             shinyItem.GlowLevel = 0;
             shinyItem.IsExcellent = false;
             shinyItem.IsAncient = false;
@@ -172,7 +172,7 @@ public class AppearanceSerializerExtended : IAppearanceSerializer
     /// <summary>
     /// Armor/Weapon Item: (3 bytes)
     ///     Group:  4 bit
-    ///     Number: 12 bit
+    ///     Number: 11 bit
     ///     Level:  4 bit
     ///     IsExc:  1 bit
     ///     IsAnc:  1 bit
@@ -183,23 +183,23 @@ public class AppearanceSerializerExtended : IAppearanceSerializer
 
         public byte Group
         {
-            get => (byte)((this._data[0] >> 4) & 0xF);
+            get => (byte)((this._data[0] >> 3) & 0x1F);
             set
             {
-                value <<= 4;
-                value |= (byte)(this._data[0] & 0xF);
+                value <<= 3;
+                value |= (byte)(this._data[0] & 0x7);
                 this._data[0] = value;
             }
         }
 
         public ushort Number
         {
-            get => (ushort)(((this._data[0] & 0xF) << 8) + this._data[1]);
+            get => (ushort)(((this._data[0] & 0x7) << 8) + this._data[1]);
             set
             {
-                // Higher 4 bits of the first byte for the higher bits of the value
-                this._data[0] = (byte)((this._data[0] & 0xF0) | (((value & 0x0F00) >> 8) & 0xF));
-                
+                // Higher 3 bits of the first byte for the higher bits of the value
+                this._data[0] = (byte)((this._data[0] & 0xF8) | (((value & 0x0700) >> 8) & 0x7));
+
                 // The lower bits in the second byte
                 this._data[1] = (byte)(value & 0xFF);
             }
@@ -256,7 +256,7 @@ public class AppearanceSerializerExtended : IAppearanceSerializer
     /// <summary>
     /// Unshiny Item: (2 bytes)
     ///     Group:  4 bit
-    ///     Number: 12 bit
+    ///     Number: 11 bit
     /// </summary>
     private readonly ref struct UnshinyItem(Span<byte> data)
     {
@@ -264,22 +264,22 @@ public class AppearanceSerializerExtended : IAppearanceSerializer
 
         public byte Group
         {
-            get => (byte)((this._data[0] >> 4) & 0xF);
+            get => (byte)((this._data[0] >> 3) & 0x1F);
             set
             {
-                value <<= 4;
-                value |= (byte)(this._data[0] & 0xF);
+                value <<= 3;
+                value |= (byte)(this._data[0] & 0x7);
                 this._data[0] = value;
             }
         }
 
         public ushort Number
         {
-            get => (ushort)(((this._data[0] & 0xF) << 8) + this._data[1]);
+            get => (ushort)(((this._data[0] & 0x7) << 8) + this._data[1]);
             set
             {
                 this._data[1] = (byte)(value & 0xFF);
-                this._data[0] = (byte)((this._data[0] & 0xF0) | ((value >> 8) & 0xF));
+                this._data[0] = (byte)((this._data[0] & 0xF8) | ((value >> 8) & 0x7));
             }
         }
     }

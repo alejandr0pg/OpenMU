@@ -209,8 +209,8 @@ public class ItemSerializerExtended : IItemSerializer
 
     /// <summary>
     /// Layout:
-    ///   Group:  4 bit
-    ///   Number: 12 bit
+    ///   Group:  5 bit
+    ///   Number: 11 bit
     ///   Level:  8 bit
     ///   Dura:   8 bit
     ///   OptFlags: 8 bit
@@ -241,22 +241,22 @@ public class ItemSerializerExtended : IItemSerializer
 
         public byte Group
         {
-            get => (byte)((this._data[0] >> 4) & 0xF);
+            get => (byte)((this._data[0] >> 3) & 0x1F);
             set
             {
-                value <<= 4;
-                value |= (byte)(this._data[0] & 0xF);
+                value <<= 3;
+                value |= (byte)(this._data[0] & 0x7);
                 this._data[0] = value;
             }
         }
 
         public ushort Number
         {
-            get => (ushort)(((this._data[0] & 0xF) << 8) + this._data[1]);
+            get => (ushort)(((this._data[0] & 0x7) << 8) + this._data[1]);
             set
             {
-                // Higher 4 bits of the first byte for the higher bits of the value
-                this._data[0] = (byte)((this._data[0] & 0xF0) | (((value & 0x0F00) >> 8) & 0xF));
+                // Higher 3 bits of the first byte for the higher bits of the value
+                this._data[0] = (byte)((this._data[0] & 0xF8) | (((value & 0x0700) >> 8) & 0x7));
 
                 // The lower bits in the second byte
                 this._data[1] = (byte)(value & 0xFF);
