@@ -1,0 +1,3 @@
+[submodule "OpenMU"]
+	path = OpenMU
+	url = git@github.com:alejandr0pg/OpenMU.git
