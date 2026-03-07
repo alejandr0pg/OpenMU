@@ -43,6 +43,7 @@ public class ShowCharacterListExtendedPlugIn : IShowCharacterListPlugIn
 
         var unlockFlags = CreateUnlockFlags(account);
         await this.SendCharacterListAsync(connection, account, unlockFlags).ConfigureAwait(false);
+        await SendCharacterStatsAsync(connection, account).ConfigureAwait(false);
         if (unlockFlags > CharacterCreationUnlockFlags.None)
         {
             await connection.SendCharacterClassCreationUnlockAsync(unlockFlags).ConfigureAwait(false);
@@ -56,6 +57,54 @@ public class ShowCharacterListExtendedPlugIn : IShowCharacterListPlugIn
             .Select(c => c.CreationAllowedFlag)
             .Aggregate(aggregatedFlags, (current, flag) => (byte)(current | flag)) ?? 0;
         return (CharacterCreationUnlockFlags)result;
+    }
+
+    /// <summary>
+    /// Sends a custom packet (F3 F1) with base stats for each character.
+    /// Layout per character: SlotIndex(1) + STR(2) + AGI(2) + VIT(2) + ENE(2) + CMD(2) = 11 bytes.
+    /// </summary>
+    private static async ValueTask SendCharacterStatsAsync(IConnection connection, Account account)
+    {
+        const int entrySize = 11;
+        int count = account.Characters.Count;
+
+        int Write()
+        {
+            int size = 5 + (count * entrySize); // C2 header(4) + subcode(1) + entries
+            var span = connection.Output.GetSpan(size)[..size];
+            span[0] = 0xC2;                           // C2 = variable-length header
+            span[1] = (byte)((size >> 8) & 0xFF);     // Length high byte
+            span[2] = (byte)(size & 0xFF);             // Length low byte
+            span[3] = 0xF3;                            // Main code (character)
+            span[4] = 0xF1;                            // Sub code (custom: stats)
+
+            int offset = 5;
+            foreach (var character in account.Characters.OrderBy(c => c.CharacterSlot))
+            {
+                span[offset] = character.CharacterSlot;
+                WriteUInt16LE(span, offset + 1, GetStat(character, Stats.BaseStrength));
+                WriteUInt16LE(span, offset + 3, GetStat(character, Stats.BaseAgility));
+                WriteUInt16LE(span, offset + 5, GetStat(character, Stats.BaseVitality));
+                WriteUInt16LE(span, offset + 7, GetStat(character, Stats.BaseEnergy));
+                WriteUInt16LE(span, offset + 9, GetStat(character, Stats.BaseLeadership));
+                offset += entrySize;
+            }
+
+            return size;
+        }
+
+        await connection.SendAsync(Write).ConfigureAwait(false);
+    }
+
+    private static ushort GetStat(DataModel.Entities.Character character, AttributeDefinition stat)
+    {
+        return (ushort)(character.Attributes.FirstOrDefault(s => s.Definition == stat)?.Value ?? 0);
+    }
+
+    private static void WriteUInt16LE(Span<byte> span, int offset, ushort value)
+    {
+        span[offset] = (byte)(value & 0xFF);
+        span[offset + 1] = (byte)((value >> 8) & 0xFF);
     }
 
     private async ValueTask SendCharacterListAsync(IConnection connection, Account account, CharacterCreationUnlockFlags unlockFlags)
