@@ -6,6 +6,7 @@ namespace MUnique.OpenMU.GameServer.RemoteView.Character;
 
 using System.Runtime.InteropServices;
 using MUnique.OpenMU.DataModel.Entities;
+using MUnique.OpenMU.AttributeSystem;
 using MUnique.OpenMU.GameLogic.Attributes;
 using MUnique.OpenMU.GameLogic.Views.Character;
 using MUnique.OpenMU.GameServer.RemoteView.Guild;
