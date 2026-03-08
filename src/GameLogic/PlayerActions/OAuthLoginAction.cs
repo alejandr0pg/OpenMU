@@ -103,7 +103,7 @@ public class OAuthLoginAction
             newAccount.PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString());
             newAccount.State = AccountState.Normal;
             newAccount.RegistrationDate = DateTime.UtcNow;
-            newAccount.SecurityCode = null;
+            newAccount.SecurityCode = string.Empty;
 
             if (!await player.PersistenceContext.SaveChangesAsync().ConfigureAwait(false))
             {

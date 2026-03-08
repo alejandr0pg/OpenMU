@@ -42,13 +42,16 @@ internal static class AppleJwtValidator
             return null;
         }
 
-        if (!ValidateClaims(payload, expectedAudience))
+        var headerElement = header.Value;
+        var payloadElement = payload.Value;
+
+        if (!ValidateClaims(payloadElement, expectedAudience))
         {
             return null;
         }
 
-        if (!header.TryGetProperty("kid", out var kidProp) ||
-            !header.TryGetProperty("alg", out var algProp))
+        if (!headerElement.TryGetProperty("kid", out var kidProp) ||
+            !headerElement.TryGetProperty("alg", out var algProp))
         {
             return null;
         }
@@ -71,7 +74,7 @@ internal static class AppleJwtValidator
             return null;
         }
 
-        return payload.TryGetProperty("email", out var emailProp)
+        return payloadElement.TryGetProperty("email", out var emailProp)
             ? emailProp.GetString()
             : null;
     }

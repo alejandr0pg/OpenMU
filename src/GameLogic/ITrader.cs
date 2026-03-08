@@ -80,6 +80,13 @@ public interface ITrader : IWorldObserver
     bool IsTemplatePlayer { get; }
 
     /// <summary>
+    /// Tries to add money to the trader's inventory.
+    /// </summary>
+    /// <param name="value">The value which should be added.</param>
+    /// <returns><c>True</c>, if the money was added successfully; Otherwise, <c>false</c>.</returns>
+    bool TryAddMoney(int value);
+
+    /// <summary>
     /// Saves the progress of the trader.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
