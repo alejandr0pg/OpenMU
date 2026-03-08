@@ -36,13 +36,14 @@ public class AppleNotificationController : Controller
 
         try
         {
-            var claims = ParseJwtPayload(payload);
-            if (claims == null)
+            var claimsNullable = ParseJwtPayload(payload);
+            if (claimsNullable == null)
             {
                 this._logger.LogWarning("Apple notification: could not parse JWT payload.");
                 return this.Ok();
             }
 
+            var claims = claimsNullable.Value;
             var eventType = GetNestedEventType(claims);
             var sub = claims.TryGetProperty("sub", out var subProp) ? subProp.GetString() : null;
 
