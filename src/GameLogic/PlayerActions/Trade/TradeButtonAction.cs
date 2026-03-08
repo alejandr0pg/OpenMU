@@ -98,8 +98,8 @@ public class TradeButtonAction : BaseTradeAction
             await itemContext.SaveChangesAsync().ConfigureAwait(false);
             this.AttachItemsToPersistenceContext(traderItems, trader.TradingPartner.PersistenceContext);
             this.AttachItemsToPersistenceContext(tradePartnerItems, trader.PersistenceContext);
-            trader.Money += trader.TradingPartner.TradingMoney;
-            trader.TradingPartner.Money += trader.TradingMoney;
+            trader.TryAddMoney(trader.TradingPartner.TradingMoney);
+            trader.TradingPartner.TryAddMoney(trader.TradingMoney);
             await trader.TradingPartner.InvokeViewPlugInAsync<IChangeTradeButtonStatePlugIn>(p => p.ChangeTradeButtonStateAsync(TradeButtonState.Checked)).ConfigureAwait(false);
             this.ResetTradeState(trader.TradingPartner);
             this.ResetTradeState(trader);

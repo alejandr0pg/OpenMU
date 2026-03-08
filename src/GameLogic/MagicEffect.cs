@@ -120,7 +120,7 @@ public class MagicEffect : AsyncDisposable
         }
         catch (Exception ex)
         {
-            Debug.Fail(ex.Message, ex.StackTrace);
+            AsyncVoidErrorHandler.HandleException(ex, nameof(MagicEffect));
         }
     }
 
@@ -140,7 +140,7 @@ public class MagicEffect : AsyncDisposable
         }
         catch (Exception ex)
         {
-            Debug.Fail(ex.Message, ex.StackTrace);
+            AsyncVoidErrorHandler.HandleException(ex, nameof(MagicEffect));
         }
     }
 

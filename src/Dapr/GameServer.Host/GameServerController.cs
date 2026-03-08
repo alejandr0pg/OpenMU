@@ -6,6 +6,7 @@ namespace MUnique.OpenMU.GameServer.Host;
 
 using global::Dapr;
 using Microsoft.AspNetCore.Mvc;
+using MUnique.OpenMU.Dapr.Common;
 using MUnique.OpenMU.Interfaces;
 using MUnique.OpenMU.ServerClients;
 
@@ -14,6 +15,7 @@ using MUnique.OpenMU.ServerClients;
 /// </summary>
 [ApiController]
 [Route("")]
+[DaprAuthFilter]
 public class GameServerController : ControllerBase
 {
     private readonly IGameServer _gameServer;
@@ -30,12 +32,22 @@ public class GameServerController : ControllerBase
     /// <summary>
     /// Shuts down the server gracefully.
     /// </summary>
-    /// <returns></returns>
     [HttpPost(nameof(IGameServer.ShutdownAsync))]
     public async ValueTask ShutdownAsync()
     {
         await this._gameServer.ShutdownAsync().ConfigureAwait(false);
         Environment.Exit(0);
+    }
+
+    /// <summary>
+    /// Bans the player from the game.
+    /// </summary>
+    /// <param name="playerName">Name of the player.</param>
+    /// <returns>True, if the player has been banned; False, otherwise.</returns>
+    [HttpPost(nameof(IGameServer.BanPlayerAsync))]
+    public ValueTask<bool> BanPlayerAsync([FromBody] string playerName)
+    {
+        return this._gameServer.BanPlayerAsync(playerName);
     }
 
     /// <summary>
@@ -175,14 +187,4 @@ public class GameServerController : ControllerBase
         return this._gameServer.DisconnectAccountAsync(accountName);
     }
 
-    /// <summary>
-    /// Bans the player from the game.
-    /// </summary>
-    /// <param name="playerName">Name of the player.</param>
-    /// <returns>True, if the player has been banned; False, otherwise.</returns>
-    [HttpPost(nameof(IGameServer.BanPlayerAsync))]
-    public ValueTask<bool> BanPlayerAsync([FromBody] string playerName)
-    {
-        return this._gameServer.BanPlayerAsync(playerName);
-    }
 }

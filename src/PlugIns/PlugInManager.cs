@@ -409,7 +409,15 @@ public class PlugInManager
 
                 try
                 {
-                    var assembly = Assembly.LoadFile("plugins\\" + configuration.ExternalAssemblyName);
+                    var safeName = System.IO.Path.GetFileName(configuration.ExternalAssemblyName);
+                    if (safeName != configuration.ExternalAssemblyName)
+                    {
+                        this._logger.LogError("Plugin path traversal attempt blocked: {name}", configuration.ExternalAssemblyName);
+                        return;
+                    }
+
+                    var fullPath = System.IO.Path.GetFullPath(System.IO.Path.Combine("plugins", safeName));
+                    var assembly = Assembly.LoadFile(fullPath);
                     this.DiscoverAndRegisterPlugIns(assembly);
                 }
                 catch (Exception e)

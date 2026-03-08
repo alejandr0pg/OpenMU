@@ -6,6 +6,7 @@ namespace MUnique.OpenMU.ChatServer.Host;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using MUnique.OpenMU.Dapr.Common;
 using MUnique.OpenMU.Interfaces;
 using MUnique.OpenMU.ServerClients;
 
@@ -14,6 +15,7 @@ using MUnique.OpenMU.ServerClients;
 /// </summary>
 [ApiController]
 [Route("")]
+[DaprAuthFilter]
 public class ChatServerController : ControllerBase
 {
     private readonly IChatServer _chatServer;

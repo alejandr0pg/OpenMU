@@ -14,6 +14,7 @@ using MUnique.OpenMU.Dapr.Common;
 /// </summary>
 [ApiController]
 [Route("")]
+[DaprAuthFilter]
 public class ServerStateController
 {
     private readonly ManagableServerRegistry _registry;

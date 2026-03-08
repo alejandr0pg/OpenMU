@@ -46,7 +46,7 @@ public class WeatherUpdatePlugIn : IPeriodicTaskPlugIn, IObjectAddedToMapPlugIn
         }
         catch (Exception ex)
         {
-            Debug.Fail(ex.Message, ex.StackTrace);
+            AsyncVoidErrorHandler.HandleException(ex, nameof(WeatherUpdatePlugIn));
         }
         finally
         {

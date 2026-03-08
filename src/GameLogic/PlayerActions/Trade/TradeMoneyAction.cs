@@ -32,9 +32,17 @@ public class TradeMoneyAction
             return;
         }
 
-        // Add the Money to the Trade
-        player.TryAddMoney(player.TradingMoney);
-        player.TryAddMoney((int)(-1 * moneyAmount));
+        // Restore previously set trade money, then deduct new amount
+        if (player.TradingMoney > 0)
+        {
+            player.TryAddMoney(player.TradingMoney);
+        }
+
+        if (moneyAmount > int.MaxValue || !player.TryAddMoney(-(int)moneyAmount))
+        {
+            return;
+        }
+
         player.TradingMoney = (int)moneyAmount;
         await player.InvokeViewPlugInAsync<IUpdateMoneyPlugIn>(p => p.UpdateMoneyAsync()).ConfigureAwait(false);
         await player.InvokeViewPlugInAsync<IRequestedTradeMoneyHasBeenSetPlugIn>(p => p.RequestedTradeMoneyHasBeenSetAsync()).ConfigureAwait(false);

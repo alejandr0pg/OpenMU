@@ -58,6 +58,8 @@ public class RavenCommandManager : Disposable, IPetCommandManager
         if (this._pet.Durability == 0.0)
         {
             this._currentBehaviour = PetBehaviour.Idle;
+            await this._owner.InvokeViewPlugInAsync<IPetBehaviourChangedViewPlugIn>(p => p.PetBehaviourChangedAsync(this._pet, PetBehaviour.Idle, null)).ConfigureAwait(false);
+            return;
         }
 
         this._currentBehaviour = newBehaviour;

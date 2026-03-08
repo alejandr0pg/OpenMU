@@ -29,7 +29,9 @@ internal abstract class TalkNpcHandlerPlugInBase : IPacketHandlerPlugIn
     public async ValueTask HandlePacketAsync(Player player, Memory<byte> packet)
     {
         TalkToNpcRequest message = packet;
-        if (player.CurrentMap?.GetObject(message.NpcId) is NonPlayerCharacter npc)
+        if (player.CurrentMap?.GetObject(message.NpcId) is NonPlayerCharacter npc
+            && player.IsAlive
+            && player.GetDistanceTo(npc) <= 5)
         {
             await this.TalkNpcAction.TalkToNpcAsync(player, npc).ConfigureAwait(false);
         }

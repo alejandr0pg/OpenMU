@@ -113,7 +113,7 @@ public abstract class TrapIntelligenceBase : INpcIntelligence, IDisposable
         }
         catch (Exception ex)
         {
-            Debug.Fail(ex.Message, ex.StackTrace);
+            AsyncVoidErrorHandler.HandleException(ex, nameof(TrapIntelligenceBase));
         }
     }
 }

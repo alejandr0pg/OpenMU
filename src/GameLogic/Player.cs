@@ -41,6 +41,8 @@ public class Player : AsyncDisposable, IBucketMapObserver, IAttackable, IAttacke
 {
     private readonly AsyncLock _moveLock = new();
 
+    private readonly object _moneyLock = new();
+
     private readonly Walker _walker;
 
     private readonly AppearanceDataAdapter _appearanceData;
@@ -486,6 +488,36 @@ public class Player : AsyncDisposable, IBucketMapObserver, IAttackable, IAttacke
     public WeakReference<IAttackable?> LastAttackedTarget { get; } = new(null);
 
     /// <summary>
+    /// Gets or sets the timestamp of the last melee attack for rate limiting.
+    /// </summary>
+    public DateTime LastAttackTime { get; set; }
+
+    /// <summary>
+    /// Gets or sets the timestamp of the last chat rate limit window start.
+    /// </summary>
+    public DateTime ChatRateWindowStart { get; set; }
+
+    /// <summary>
+    /// Gets or sets the chat message count in the current rate limit window.
+    /// </summary>
+    public int ChatMessageCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the failed login attempt count for rate limiting.
+    /// </summary>
+    public int FailedLoginAttempts { get; set; }
+
+    /// <summary>
+    /// Gets or sets the login lockout expiry time.
+    /// </summary>
+    public DateTime LoginLockoutUntil { get; set; }
+
+    /// <summary>
+    /// Gets or sets the last voice packet timestamp for rate limiting.
+    /// </summary>
+    public DateTime LastVoicePacketTime { get; set; }
+
+    /// <summary>
     /// Gets or sets the last requested player store.
     /// </summary>
     public WeakReference<Player>? LastRequestedPlayerStore { get; set; }
@@ -719,7 +751,7 @@ public class Player : AsyncDisposable, IBucketMapObserver, IAttackable, IAttacke
         var manaFullyRecovered = Rand.NextRandomBool(this.Attributes[Stats.FullyRecoverManaAfterHitChance]);
         if (hitInfo.ManaToll > 0 || manaFullyRecovered)
         {
-            this.Attributes[Stats.CurrentMana] = (manaFullyRecovered ? this.Attributes[Stats.MaximumMana] : this.Attributes[Stats.CurrentMana]) - hitInfo.ManaToll;
+            this.Attributes[Stats.CurrentMana] = Math.Max(0, (manaFullyRecovered ? this.Attributes[Stats.MaximumMana] : this.Attributes[Stats.CurrentMana]) - hitInfo.ManaToll);
         }
 
         await this.HitAsync(hitInfo, attacker, skill?.Skill).ConfigureAwait(false);
@@ -898,13 +930,17 @@ public class Player : AsyncDisposable, IBucketMapObserver, IAttackable, IAttacke
     /// <returns><c>True</c>, if the players inventory had enough money to remove; Otherwise, <c>false</c>.</returns>
     public bool TryRemoveMoney(int value)
     {
-        if (this.Money < value)
+        lock (this._moneyLock)
         {
-            return false;
-        }
+            var currentMoney = this.Money;
+            if (currentMoney < value)
+            {
+                return false;
+            }
 
-        this.Money = checked(this.Money - value);
-        return true;
+            this.Money = checked(currentMoney - value);
+            return true;
+        }
     }
 
     /// <summary>
@@ -919,17 +955,23 @@ public class Player : AsyncDisposable, IBucketMapObserver, IAttackable, IAttacke
             return false;
         }
 
-        if (this.Vault.ItemStorage.Money + value > this.GameContext?.Configuration?.MaximumVaultMoney)
+        lock (this._moneyLock)
         {
-            return false;
-        }
+            var maxVaultMoney = this.GameContext?.Configuration?.MaximumVaultMoney ?? int.MaxValue;
+            if (this.Vault.ItemStorage.Money + value > maxVaultMoney)
+            {
+                return false;
+            }
 
-        if (this.TryRemoveMoney(value))
-        {
-            return this.Vault.TryAddMoney(value);
-        }
+            if (this.Money < value)
+            {
+                return false;
+            }
 
-        return false;
+            this.Money -= value;
+            this.Vault.ItemStorage.Money += value;
+            return true;
+        }
     }
 
     /// <summary>
@@ -944,17 +986,23 @@ public class Player : AsyncDisposable, IBucketMapObserver, IAttackable, IAttacke
             return false;
         }
 
-        if (this.Money + value > this.GameContext?.Configuration?.MaximumInventoryMoney)
+        lock (this._moneyLock)
         {
-            return false;
-        }
+            var maxInvMoney = this.GameContext?.Configuration?.MaximumInventoryMoney ?? int.MaxValue;
+            if (this.Money + value > maxInvMoney)
+            {
+                return false;
+            }
 
-        if (this.Vault.TryRemoveMoney(value))
-        {
-            return this.TryAddMoney(value);
-        }
+            if (this.Vault.ItemStorage.Money < value)
+            {
+                return false;
+            }
 
-        return false;
+            this.Vault.ItemStorage.Money -= value;
+            this.Money += value;
+            return true;
+        }
     }
 
     /// <summary>
@@ -964,18 +1012,22 @@ public class Player : AsyncDisposable, IBucketMapObserver, IAttackable, IAttacke
     /// <returns><c>True</c>, if the players inventory had space to add money; Otherwise, <c>false</c>.</returns>
     public virtual bool TryAddMoney(int value)
     {
-        if (this.Money + value > this.GameContext?.Configuration?.MaximumInventoryMoney)
+        lock (this._moneyLock)
         {
-            return false;
-        }
+            var currentMoney = this.Money;
+            if (currentMoney + value > this.GameContext?.Configuration?.MaximumInventoryMoney)
+            {
+                return false;
+            }
 
-        if (this.Money + value < 0)
-        {
-            return false;
-        }
+            if (currentMoney + value < 0)
+            {
+                return false;
+            }
 
-        this.Money = checked(this.Money + value);
-        return true;
+            this.Money = checked(currentMoney + value);
+            return true;
+        }
     }
 
     /// <summary>
@@ -1223,30 +1275,34 @@ public class Player : AsyncDisposable, IBucketMapObserver, IAttackable, IAttacke
     /// <param name="killedObject">The killed object which caused the experience gain.</param>
     public async ValueTask AddExperienceAsync(int experience, IAttackable? killedObject)
     {
-        if (this.Attributes![Stats.Level] >= this.GameContext.Configuration.MaximumLevel)
+        var remainingExp = (long)experience;
+
+        while (remainingExp > 0)
         {
-            await this.InvokeViewPlugInAsync<IAddExperiencePlugIn>(p => p.AddExperienceAsync(0, killedObject, ExperienceType.MaxLevelReached)).ConfigureAwait(false);
-            return;
-        }
+            if (this.Attributes![Stats.Level] >= this.GameContext.Configuration.MaximumLevel)
+            {
+                await this.InvokeViewPlugInAsync<IAddExperiencePlugIn>(p => p.AddExperienceAsync(0, killedObject, ExperienceType.MaxLevelReached)).ConfigureAwait(false);
+                return;
+            }
 
-        long exp = experience;
-        bool isLevelUp = false;
-        var expTable = this.GameContext.ExperienceTable;
-        var expForNextLevel = expTable[(int)this.Attributes[Stats.Level] + 1];
-        if (expForNextLevel - this.SelectedCharacter!.Experience < exp)
-        {
-            exp = expForNextLevel - this.SelectedCharacter.Experience;
-            isLevelUp = true;
-        }
+            long exp = remainingExp;
+            bool isLevelUp = false;
+            var expTable = this.GameContext.ExperienceTable;
+            var expForNextLevel = expTable[(int)this.Attributes[Stats.Level] + 1];
+            if (expForNextLevel - this.SelectedCharacter!.Experience < exp)
+            {
+                exp = expForNextLevel - this.SelectedCharacter.Experience;
+                isLevelUp = true;
+            }
 
-        this.SelectedCharacter.Experience += exp;
+            this.SelectedCharacter.Experience += exp;
+            await this.InvokeViewPlugInAsync<IAddExperiencePlugIn>(p => p.AddExperienceAsync((int)exp, killedObject, ExperienceType.Normal)).ConfigureAwait(false);
 
-        // Tell it to the Player
-        await this.InvokeViewPlugInAsync<IAddExperiencePlugIn>(p => p.AddExperienceAsync((int)exp, killedObject, ExperienceType.Normal)).ConfigureAwait(false);
+            if (!isLevelUp)
+            {
+                return;
+            }
 
-        // Check the lvl up
-        if (isLevelUp)
-        {
             this.Attributes[Stats.Level]++;
             this.SelectedCharacter.LevelUpPoints += (int)this.Attributes[Stats.PointsPerLevelUp];
             this.SetReclaimableAttributesToMaximum();
@@ -1257,14 +1313,11 @@ public class Player : AsyncDisposable, IBucketMapObserver, IAttackable, IAttacke
             await this.InvokeViewPlugInAsync<IUpdateLevelPlugIn>(p => p.UpdateLevelAsync()).ConfigureAwait(false);
             await this.ForEachWorldObserverAsync<IShowEffectPlugIn>(p => p.ShowEffectAsync(this, IShowEffectPlugIn.EffectType.LevelUp), true).ConfigureAwait(false);
 
-            var remainingExp = experience - exp;
-            if (remainingExp > 0 && this.Attributes![Stats.Level] < this.GameContext.Configuration.MaximumLevel)
+            remainingExp -= exp;
+
+            if (this.GameContext.Configuration.PreventExperienceOverflow)
             {
-                // Only apply overflow if the configuration allows it
-                if (!this.GameContext.Configuration.PreventExperienceOverflow)
-                {
-                    await this.AddExperienceAsync((int)remainingExp, killedObject).ConfigureAwait(false);
-                }
+                return;
             }
         }
     }
@@ -2089,18 +2142,18 @@ public class Player : AsyncDisposable, IBucketMapObserver, IAttackable, IAttacke
     {
         this.Summon?.Item2.RegisterHit(attacker);
         var healthDamage = hitInfo.HealthDamage;
-        int oversd = (int)(this.Attributes![Stats.CurrentShield] - hitInfo.ShieldDamage);
-        if (oversd < 0)
+        double shieldAfterDamage = this.Attributes![Stats.CurrentShield] - hitInfo.ShieldDamage;
+        if (shieldAfterDamage < 0)
         {
             this.Attributes[Stats.CurrentShield] = 0;
-            healthDamage += (uint)(oversd * (-1));
+            healthDamage += (uint)Math.Abs(shieldAfterDamage);
         }
         else
         {
-            this.Attributes[Stats.CurrentShield] = oversd;
+            this.Attributes[Stats.CurrentShield] = (float)shieldAfterDamage;
         }
 
-        this.Attributes[Stats.CurrentHealth] -= healthDamage;
+        this.Attributes[Stats.CurrentHealth] = Math.Max(0, this.Attributes[Stats.CurrentHealth] - healthDamage);
         await this.InvokeViewPlugInAsync<IShowHitPlugIn>(p => p.ShowHitAsync(this, hitInfo)).ConfigureAwait(false);
         if (attacker is IWorldObserver observer)
         {
@@ -2166,6 +2219,8 @@ public class Player : AsyncDisposable, IBucketMapObserver, IAttackable, IAttacke
 
     private async ValueTask OnDeathAsync(IAttacker? killer)
     {
+        await this.CloseTradeIfNeededAsync().ConfigureAwait(false);
+
         if (!await this.PlayerState.TryAdvanceToAsync(GameLogic.PlayerState.Dead).ConfigureAwait(false))
         {
             return;

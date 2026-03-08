@@ -8,6 +8,7 @@ using System.Net;
 using global::Dapr;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using MUnique.OpenMU.Dapr.Common;
 using MUnique.OpenMU.ServerClients;
 
 /// <summary>
@@ -15,6 +16,7 @@ using MUnique.OpenMU.ServerClients;
 /// </summary>
 [ApiController]
 [Route("")]
+[DaprAuthFilter]
 public class ConnectServerController : ControllerBase
 {
     private readonly GameServerRegistry _registry;

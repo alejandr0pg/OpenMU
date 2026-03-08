@@ -5,6 +5,7 @@
 namespace MUnique.OpenMU.GameLogic;
 
 using System.Collections;
+using System.Collections.Concurrent;
 using MUnique.OpenMU.AttributeSystem;
 using MUnique.OpenMU.GameLogic.Views.World;
 using Nito.AsyncEx;
@@ -26,13 +27,20 @@ public class MagicEffectsList : AsyncDisposable
     public MagicEffectsList(IAttackable owner)
     {
         this._owner = owner;
-        this.ActiveEffects = new SortedList<short, MagicEffect>(6);
+        this.ActiveEffects = new ConcurrentDictionary<short, MagicEffect>();
     }
 
     /// <summary>
-    /// Gets the active effects.
+    /// Gets the active effects. Thread-safe for concurrent reads.
     /// </summary>
     public IDictionary<short, MagicEffect> ActiveEffects { get; }
+
+    /// <summary>
+    /// Checks whether the specified effect is currently active.
+    /// </summary>
+    /// <param name="effectId">The effect identifier.</param>
+    /// <returns><c>true</c> if the effect is active.</returns>
+    public bool HasEffect(short effectId) => this.ActiveEffects.ContainsKey(effectId);
 
     /// <summary>
     /// Gets the active visible effect ids.
@@ -55,7 +63,7 @@ public class MagicEffectsList : AsyncDisposable
             else
             {
                 added = true;
-                this.ActiveEffects.Add(effect.Id, effect);
+                this.ActiveEffects.TryAdd(effect.Id, effect);
                 this._contains[effect.Id] = true;
                 foreach (var powerUp in effect.PowerUpElements)
                 {

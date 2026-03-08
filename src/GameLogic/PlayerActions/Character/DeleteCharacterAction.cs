@@ -4,6 +4,7 @@
 
 namespace MUnique.OpenMU.GameLogic.PlayerActions.Character;
 
+using System.Security.Cryptography;
 using MUnique.OpenMU.GameLogic.PlugIns;
 using MUnique.OpenMU.GameLogic.Views.Character;
 using MUnique.OpenMU.Interfaces;
@@ -45,15 +46,22 @@ public class DeleteCharacterAction
             return CharacterDeleteResult.Unsuccessful;
         }
 
-        var checkAsPassword = string.IsNullOrEmpty(player.Account.SecurityCode);
-        if (checkAsPassword && !BCrypt.Net.BCrypt.Verify(securityCode, player.Account.PasswordHash))
+        if (string.IsNullOrEmpty(player.Account.SecurityCode))
         {
-            return CharacterDeleteResult.WrongSecurityCode;
+            if (!BCrypt.Net.BCrypt.Verify(securityCode, player.Account.PasswordHash))
+            {
+                return CharacterDeleteResult.WrongSecurityCode;
+            }
         }
-
-        if (!checkAsPassword && player.Account.SecurityCode != securityCode)
+        else
         {
-            return CharacterDeleteResult.WrongSecurityCode;
+            // Use constant-time comparison to prevent timing attacks
+            if (!CryptographicOperations.FixedTimeEquals(
+                System.Text.Encoding.UTF8.GetBytes(securityCode),
+                System.Text.Encoding.UTF8.GetBytes(player.Account.SecurityCode)))
+            {
+                return CharacterDeleteResult.WrongSecurityCode;
+            }
         }
 
         if (player.GameContext is IGameServerContext gameServerContext && await gameServerContext.GuildServer.GetGuildPositionAsync(character.Id).ConfigureAwait(false) != GuildPosition.Undefined)

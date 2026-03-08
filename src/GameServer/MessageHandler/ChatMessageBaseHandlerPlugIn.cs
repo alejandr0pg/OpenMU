@@ -27,10 +27,18 @@ internal abstract class ChatMessageBaseHandlerPlugIn : IPacketHandlerPlugIn
     /// </summary>
     protected abstract bool IsWhisper { get; }
 
+    private const int MaxMessageLength = 200;
+
     /// <inheritdoc/>
     public async ValueTask HandlePacketAsync(Player player, Memory<byte> packet)
     {
         WhisperMessage message = packet;
-        await this._messageAction.ChatMessageAsync(player, message.ReceiverName, message.Message, this.IsWhisper).ConfigureAwait(false);
+        var text = message.Message;
+        if (string.IsNullOrEmpty(text) || text.Length > MaxMessageLength)
+        {
+            return;
+        }
+
+        await this._messageAction.ChatMessageAsync(player, message.ReceiverName, text, this.IsWhisper).ConfigureAwait(false);
     }
 }

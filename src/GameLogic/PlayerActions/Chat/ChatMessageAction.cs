@@ -11,6 +11,11 @@ using MUnique.OpenMU.GameLogic.Views;
 /// </summary>
 public class ChatMessageAction
 {
+    /// <summary>
+    /// Maximum chat messages per second before throttling.
+    /// </summary>
+    private const int MaxMessagesPerSecond = 5;
+
     private readonly IDictionary<string, ChatMessageType> _messagePrefixes;
     private readonly IDictionary<ChatMessageType, IChatMessageProcessor> _chatProcessMessages;
 
@@ -51,6 +56,19 @@ public class ChatMessageAction
     public async ValueTask ChatMessageAsync(Player sender, string playerName, string message, bool whisper)
     {
         using var loggerScope = sender.Logger.BeginScope(this.GetType());
+
+        var now = DateTime.UtcNow;
+        if ((now - sender.ChatRateWindowStart).TotalSeconds >= 1)
+        {
+            sender.ChatRateWindowStart = now;
+            sender.ChatMessageCount = 0;
+        }
+
+        if (++sender.ChatMessageCount > MaxMessagesPerSecond)
+        {
+            return;
+        }
+
         ChatMessageType messageType = this.GetMessageType(message, whisper);
 
         if (sender.SelectedCharacter is null)

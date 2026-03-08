@@ -178,7 +178,8 @@ public abstract class BaseItemCraftingHandler : IItemCraftingHandler
                 itemLink.Items.ForEach(item =>
                 {
                     var previousLevel = item.Level;
-                    item.Level -= (byte)(Rand.NextRandomBool() ? 2 : 3);
+                    var reduction = (byte)(Rand.NextRandomBool() ? 2 : 3);
+                    item.Level = item.Level >= reduction ? (byte)(item.Level - reduction) : (byte)0;
                     if (item.ItemOptions.FirstOrDefault(o => o.ItemOption?.OptionType == ItemOptionTypes.Option) is { } optionLink)
                     {
                         item.ItemOptions.Remove(optionLink);

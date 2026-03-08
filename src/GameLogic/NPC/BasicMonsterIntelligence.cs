@@ -201,7 +201,7 @@ public class BasicMonsterIntelligence : INpcIntelligence, IDisposable
         }
         catch (Exception ex)
         {
-            Debug.Fail(ex.Message, ex.StackTrace);
+            AsyncVoidErrorHandler.HandleException(ex, nameof(BasicMonsterIntelligence));
         }
     }
 

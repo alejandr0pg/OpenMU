@@ -105,6 +105,7 @@ public static class WebApplicationExtensions
             app.UseExceptionHandler("/Error", createScopeForErrors: true);
         }
 
+        app.UseMiddleware<ReverseProxyAuthMiddleware>();
         app.UseStaticFiles();
         app.UseStaticFiles(new StaticFileOptions
         {

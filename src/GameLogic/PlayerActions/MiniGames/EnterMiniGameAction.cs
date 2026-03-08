@@ -103,9 +103,10 @@ public class EnterMiniGameAction
         var enterResult = await miniGame.TryEnterAsync(player).ConfigureAwait(false);
         if (enterResult == EnterResult.Success)
         {
-            if (entranceFee > 0)
+            if (entranceFee > 0 && !player.TryRemoveMoney(entranceFee))
             {
-                player.TryRemoveMoney(entranceFee);
+                await player.InvokeViewPlugInAsync<IShowMiniGameEnterResultPlugIn>(p => p.ShowResultAsync(miniGameType, EnterResult.NotEnoughMoney)).ConfigureAwait(false);
+                return;
             }
 
             await this.ConsumeTicketItemAsync(ticketItem, player).ConfigureAwait(false);

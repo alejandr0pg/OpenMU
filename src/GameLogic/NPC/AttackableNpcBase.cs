@@ -304,7 +304,7 @@ public abstract class AttackableNpcBase : NonPlayerCharacter, IAttackable
         }
         catch (Exception ex)
         {
-            Debug.Fail(ex.Message, ex.StackTrace);
+            AsyncVoidErrorHandler.HandleException(ex, nameof(AttackableNpcBase));
         }
     }
 

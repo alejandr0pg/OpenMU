@@ -12,6 +12,7 @@ using MUnique.OpenMU.Interfaces;
 /// </summary>
 [ApiController]
 [Route("")]
+[DaprAuthFilter]
 public class ManageableServerController
 {
     private readonly IManageableServer _manageableServer;

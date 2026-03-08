@@ -123,7 +123,7 @@ public class SoccerGameMap : GameMap
         }
         catch (Exception ex)
         {
-            Debug.Fail(ex.Message, ex.StackTrace);
+            AsyncVoidErrorHandler.HandleException(ex, nameof(SoccerGameMap));
         }
     }
 

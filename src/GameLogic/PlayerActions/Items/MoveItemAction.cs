@@ -305,12 +305,12 @@ public class MoveItemAction
 
         for (var i = toStorage.StartIndex; i < toStorage.EndIndex; i++)
         {
-            if (toStorage.StartIndex == fromSlot && sameStorage)
+            if (i == fromSlot && sameStorage)
             {
                 continue; // to make sure that the same item is not blocking itself
             }
 
-            var blockingItem = toStorage.Storage.GetItem(toStorage.StartIndex);
+            var blockingItem = toStorage.Storage.GetItem(i);
             if (blockingItem is null)
             {
                 continue; // no item is blocking the slot

@@ -18,6 +18,11 @@ using Pipelines.Sockets.Unofficial;
 /// </remarks>
 public abstract class PacketPipeReaderBase
 {
+    /// <summary>
+    /// Maximum allowed packet size (16 KB) to prevent memory exhaustion from malicious headers.
+    /// </summary>
+    private const int MaxPacketSize = 16384;
+
     private readonly byte[] _headerBuffer = new byte[3];
 
     /// <summary>
@@ -108,7 +113,7 @@ public abstract class PacketPipeReaderBase
                 // peek the length of the next packet
                 buffer.Slice(0, 3).CopyTo(this._headerBuffer);
                 length = this._headerBuffer.AsSpan().GetPacketSize();
-                if (length == 0)
+                if (length is 0 or > MaxPacketSize)
                 {
                     var exception = new InvalidPacketHeaderException(this._headerBuffer, result.Buffer, buffer.Start);
 

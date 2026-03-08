@@ -54,6 +54,11 @@ public abstract class BaseConsumeHandlerPlugIn : IItemConsumeHandlerPlugIn
             return false;
         }
 
+        if (player.TradingPartner is not null)
+        {
+            return false;
+        }
+
         return true;
     }
 }

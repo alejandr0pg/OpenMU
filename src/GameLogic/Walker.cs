@@ -241,7 +241,7 @@ public sealed class Walker : IDisposable
         }
         catch (Exception ex)
         {
-            Debug.Fail(ex.Message, ex.StackTrace);
+            AsyncVoidErrorHandler.HandleException(ex, nameof(Walker));
         }
     }
 

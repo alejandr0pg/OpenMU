@@ -12,6 +12,8 @@ using MUnique.OpenMU.GameLogic.Views.Login;
 /// </summary>
 public class LoginAction
 {
+    private const int MaxFailedAttempts = 5;
+    private static readonly TimeSpan LockoutDuration = TimeSpan.FromSeconds(30);
     private static int _templateCounter;
 
     /// <summary>
@@ -23,6 +25,14 @@ public class LoginAction
     public async ValueTask LoginAsync(Player player, string username, string password)
     {
         using var loggerScope = player.Logger.BeginScope(this.GetType());
+
+        if (player.FailedLoginAttempts >= MaxFailedAttempts
+            && DateTime.UtcNow < player.LoginLockoutUntil)
+        {
+            await player.InvokeViewPlugInAsync<IShowLoginResultPlugIn>(p => p.ShowLoginResultAsync(LoginResult.TemporaryBlocked)).ConfigureAwait(false);
+            return;
+        }
+
         Account? account;
         try
         {
@@ -37,7 +47,13 @@ public class LoginAction
 
         if (account is null)
         {
-            player.Logger.LogInformation($"Account not found or invalid password, username: [{username}]");
+            player.FailedLoginAttempts++;
+            if (player.FailedLoginAttempts >= MaxFailedAttempts)
+            {
+                player.LoginLockoutUntil = DateTime.UtcNow + LockoutDuration;
+            }
+
+            player.Logger.LogInformation("Login failed for connection {ConnectionId}.", player.GetHashCode());
             await player.InvokeViewPlugInAsync<IShowLoginResultPlugIn>(p => p.ShowLoginResultAsync(LoginResult.InvalidPassword)).ConfigureAwait(false);
         }
         else if (account.State == AccountState.Banned)
@@ -58,6 +74,7 @@ public class LoginAction
                     && (account.IsTemplate || await gameServerContext.LoginServer.TryLoginAsync(username, gameServerContext.Id).ConfigureAwait(false)))
                 {
                     player.Account = account;
+                    player.FailedLoginAttempts = 0;
                     player.Logger.LogDebug("Login successful, username: [{0}]", username);
 
                     if (player.IsTemplatePlayer)

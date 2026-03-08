@@ -13,6 +13,11 @@ using MUnique.OpenMU.GameLogic.Views.World;
 public class HitAction
 {
     /// <summary>
+    /// Minimum interval between attacks in milliseconds to prevent speed hacks.
+    /// </summary>
+    private const int MinAttackIntervalMs = 300;
+
+    /// <summary>
     /// Hits the specified target by the specified player.
     /// </summary>
     /// <param name="player">The player.</param>
@@ -25,6 +30,14 @@ public class HitAction
         {
             return;
         }
+
+        var now = DateTime.UtcNow;
+        if (now - player.LastAttackTime < TimeSpan.FromMilliseconds(MinAttackIntervalMs))
+        {
+            return;
+        }
+
+        player.LastAttackTime = now;
 
         if (attributes[Stats.IsStunned] > 0)
         {

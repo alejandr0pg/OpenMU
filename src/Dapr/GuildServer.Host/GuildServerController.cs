@@ -8,6 +8,7 @@ using System.Collections.Immutable;
 using global::Dapr;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using MUnique.OpenMU.Dapr.Common;
 using MUnique.OpenMU.Interfaces;
 using MUnique.OpenMU.ServerClients;
 
@@ -17,6 +18,7 @@ using MUnique.OpenMU.ServerClients;
 /// </summary>
 [ApiController]
 [Route("")]
+[DaprAuthFilter]
 public class GuildServerController : ControllerBase
 {
     private readonly IGuildServer _guildServer;

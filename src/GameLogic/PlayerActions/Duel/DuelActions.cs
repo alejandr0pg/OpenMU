@@ -109,10 +109,15 @@ public class DuelActions
             return;
         }
 
-        // we risk that the money is not sufficient anymore,
-        // but we don't care anymore if it fails.
-        player.TryRemoveMoney(duelConfig.EntranceFee);
-        target.TryRemoveMoney(duelConfig.EntranceFee);
+        if (!player.TryRemoveMoney(duelConfig.EntranceFee)
+            || !target.TryRemoveMoney(duelConfig.EntranceFee))
+        {
+            player.TryAddMoney(duelConfig.EntranceFee);
+            target.TryAddMoney(duelConfig.EntranceFee);
+            await duelRoom.ResetAndDisposeAsync(DuelStartResult.FailedByError).ConfigureAwait(false);
+            return;
+        }
+
         duelRoom.State = DuelState.DuelAccepted;
 
         await duelRoom.Requester.WarpToAsync(duelArea.FirstPlayerGate).ConfigureAwait(false);

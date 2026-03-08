@@ -41,6 +41,8 @@ public class GameContext : AsyncDisposable, IGameContext
 
     private readonly Dictionary<MiniGameMapKey, MiniGameContext> _miniGames = new();
 
+    private readonly ILogger<GameContext> _logger;
+
     private readonly Timer _recoverTimer;
 
     private readonly IMapInitializer _mapInitializer;
@@ -77,6 +79,7 @@ public class GameContext : AsyncDisposable, IGameContext
             this.PlugInManager = plugInManager;
             this._mapInitializer = mapInitializer;
             this.LoggerFactory = loggerFactory;
+            this._logger = loggerFactory.CreateLogger<GameContext>();
             this.DropGenerator = dropGenerator;
             this.ConfigurationChangeMediator = changeMediator;
             this.ItemPowerUpFactory = new ItemPowerUpFactory(loggerFactory.CreateLogger<ItemPowerUpFactory>());
@@ -476,7 +479,7 @@ public class GameContext : AsyncDisposable, IGameContext
         }
         catch (Exception ex)
         {
-            Debug.Fail(ex.Message, ex.StackTrace);
+            this._logger.LogError(ex, "Error executing periodic tasks");
         }
     }
 
@@ -495,10 +498,9 @@ public class GameContext : AsyncDisposable, IGameContext
                 return Task.CompletedTask;
             }).ConfigureAwait(false);
         }
-        catch
+        catch (Exception ex)
         {
-            // This should never happen as we already handle Exceptions in player.RegenerateAsync.
-            // However, if the player disconnects in the meantime, it could happen :-).
+            this._logger.LogError(ex, "Error during recovery timer");
         }
     }
 

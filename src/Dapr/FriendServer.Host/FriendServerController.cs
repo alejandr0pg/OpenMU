@@ -7,6 +7,7 @@ namespace MUnique.OpenMU.FriendServer.Host;
 using global::Dapr;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using MUnique.OpenMU.Dapr.Common;
 using MUnique.OpenMU.Interfaces;
 using MUnique.OpenMU.ServerClients;
 
@@ -15,6 +16,7 @@ using MUnique.OpenMU.ServerClients;
 /// </summary>
 [ApiController]
 [Route("")]
+[DaprAuthFilter]
 public class FriendServerController : ControllerBase
 {
     private readonly IFriendServer _friendServer;

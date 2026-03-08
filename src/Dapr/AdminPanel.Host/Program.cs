@@ -11,6 +11,8 @@ using MUnique.OpenMU.PlugIns;
 using MUnique.OpenMU.ServerClients;
 using MUnique.OpenMU.Web.AdminPanel;
 
+// ReverseProxyAuthMiddleware is in MUnique.OpenMU.Web.AdminPanel namespace
+
 var builder = DaprService.CreateBuilder("AdminPanel", args);
 
 var plugInConfigurations = new List<PlugInConfiguration>();
@@ -31,6 +33,7 @@ var metricsRegistry = new MetricsRegistry();
 builder.AddOpenTelemetryMetrics(metricsRegistry);
 
 var app = builder.BuildAndConfigure(false);
+app.UseMiddleware<ReverseProxyAuthMiddleware>();
 app.UseStaticFiles();
 app.UseAntiforgery();
 app.MapRazorComponents<MUnique.OpenMU.Web.AdminPanel.Components.App>()

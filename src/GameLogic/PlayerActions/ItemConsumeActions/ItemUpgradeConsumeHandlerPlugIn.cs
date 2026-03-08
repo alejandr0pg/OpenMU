@@ -98,7 +98,11 @@ public abstract class ItemUpgradeConsumeHandlerPlugIn : ItemModifyConsumeHandler
 
         if (Rand.NextRandomBool(this.Configuration.SuccessChance))
         {
-            itemOption.Level++;
+            var maxLevel = increasableOption?.LevelDependentOptions.Max(o => o.Level) ?? int.MaxValue;
+            if (itemOption.Level < maxLevel)
+            {
+                itemOption.Level++;
+            }
         }
         else
         {

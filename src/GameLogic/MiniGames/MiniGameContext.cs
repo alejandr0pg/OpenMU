@@ -404,11 +404,11 @@ public class MiniGameContext : AsyncDisposable, IEventStateProvider
                 return;
             }
 
-            player.CurrentMiniGame = null;
-            player.PlayerPickedUpItem -= this.OnPlayerPickedUpItemAsync;
             bool cantGameProceed;
             using (await this._enterLock.WriterLockAsync().ConfigureAwait(false))
             {
+                player.CurrentMiniGame = null;
+                player.PlayerPickedUpItem -= this.OnPlayerPickedUpItemAsync;
                 player.Died -= this.OnPlayerDied;
                 this._enteredPlayers.Remove(player);
                 cantGameProceed = this._enteredPlayers.Count == 0 && this.State != MiniGameState.Open;

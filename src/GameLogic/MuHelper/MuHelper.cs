@@ -157,7 +157,7 @@ public class MuHelper : AsyncDisposable
         }
         catch (Exception ex)
         {
-            Debug.Fail(ex.Message, ex.StackTrace);
+            AsyncVoidErrorHandler.HandleException(ex, "MuHelper");
         }
     }
 

@@ -3,6 +3,14 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# Environment files with secrets
+.env
+!.env.example
+
+# htpasswd files with credentials (use .htpasswd.example as template)
+.htpasswd
+!.htpasswd.example
+
 # User-specific files
 *.suo
 *.user

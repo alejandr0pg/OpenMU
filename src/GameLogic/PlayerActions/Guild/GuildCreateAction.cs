@@ -11,6 +11,9 @@ using MUnique.OpenMU.GameLogic.Views.Guild;
 /// </summary>
 public class GuildCreateAction
 {
+    private const int MinimumLevel = 100;
+    private const int CreationCost = 1_000_000;
+
     /// <summary>
     /// Creates the guild.
     /// </summary>
@@ -23,6 +26,18 @@ public class GuildCreateAction
         if (creator.PlayerState.CurrentState != PlayerState.EnteredWorld)
         {
             creator.Logger.LogError($"Account {creator.Account?.LoginName} not in the right state, but {creator.PlayerState.CurrentState}.");
+            return;
+        }
+
+        if (creator.GuildStatus is not null)
+        {
+            creator.Logger.LogWarning("Player {0} tried to create guild while already in one.", creator.SelectedCharacter?.Name);
+            return;
+        }
+
+        if (creator.Level < MinimumLevel)
+        {
+            await creator.InvokeViewPlugInAsync<IShowGuildCreateResultPlugIn>(p => p.ShowGuildCreateResultAsync(GuildCreateErrorDetail.GuildAlreadyExist)).ConfigureAwait(false);
             return;
         }
 
@@ -39,6 +54,12 @@ public class GuildCreateAction
             return;
         }
 
+        if (!creator.TryRemoveMoney(CreationCost))
+        {
+            await creator.InvokeViewPlugInAsync<IShowGuildCreateResultPlugIn>(p => p.ShowGuildCreateResultAsync(GuildCreateErrorDetail.GuildAlreadyExist)).ConfigureAwait(false);
+            return;
+        }
+
         if (await guildServer.CreateGuildAsync(guildName, creator.SelectedCharacter!.Name, creator.SelectedCharacter.Id, guildEmblem, ((IGameServerContext)creator.GameContext).Id).ConfigureAwait(false))
         {
             await creator.InvokeViewPlugInAsync<IShowGuildCreateResultPlugIn>(p => p.ShowGuildCreateResultAsync(GuildCreateErrorDetail.None)).ConfigureAwait(false);
@@ -46,6 +67,7 @@ public class GuildCreateAction
         }
         else
         {
+            creator.TryAddMoney(CreationCost);
             await creator.InvokeViewPlugInAsync<IShowGuildCreateResultPlugIn>(p => p.ShowGuildCreateResultAsync(GuildCreateErrorDetail.GuildAlreadyExist)).ConfigureAwait(false);
         }
     }

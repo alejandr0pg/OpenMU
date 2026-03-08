@@ -201,7 +201,11 @@ public static class AttackableExtensions
         dmg = (int)(dmg * attacker.Attributes[Stats.AttackDamageIncrease]);
         if (dmg > 1)
         {
-            dmg = (int)(dmg * defender.Attributes[Stats.DamageReceiveDecrement]);
+            var damageDecrement = defender.Attributes[Stats.DamageReceiveDecrement];
+            if (damageDecrement > 0)
+            {
+                dmg = Math.Max(1, (int)(dmg * damageDecrement));
+            }
         }
 
         if (skill != null)

@@ -4,6 +4,7 @@
 
 namespace MUnique.OpenMU.GameLogic;
 
+using System.Diagnostics;
 using MUnique.OpenMU.DataModel.Configuration.Items;
 
 /// <summary>
@@ -17,6 +18,8 @@ public class Storage : IStorage
     private readonly int _slotOffset;
 
     private readonly int _boxOffset;
+
+    private readonly object _moneyLock = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Storage"/> class.
@@ -168,25 +171,33 @@ public class Storage : IStorage
     /// <inheritdoc/>
     public bool TryAddMoney(int value)
     {
-        if (this.ItemStorage.Money + value < 0)
+        lock (this._moneyLock)
         {
-            return false;
-        }
+            var currentMoney = this.ItemStorage.Money;
+            if (currentMoney + value < 0)
+            {
+                return false;
+            }
 
-        this.ItemStorage.Money = this.ItemStorage.Money + value;
-        return true;
+            this.ItemStorage.Money = currentMoney + value;
+            return true;
+        }
     }
 
     /// <inheritdoc/>
     public bool TryRemoveMoney(int value)
     {
-        if (this.ItemStorage.Money - value < 0)
+        lock (this._moneyLock)
         {
-            return false;
-        }
+            var currentMoney = this.ItemStorage.Money;
+            if (currentMoney - value < 0)
+            {
+                return false;
+            }
 
-        this.ItemStorage.Money = this.ItemStorage.Money - value;
-        return true;
+            this.ItemStorage.Money = currentMoney - value;
+            return true;
+        }
     }
 
     /// <inheritdoc/>
@@ -383,6 +394,12 @@ public class Storage : IStorage
 
     private bool AddItem(byte slot, Item item)
     {
+        if (this.ItemStorage.Items.Contains(item))
+        {
+            Debug.Fail($"Duplicate item detected: {item.Definition?.Name} already exists in storage at slot {item.ItemSlot}.");
+            return false;
+        }
+
         var result = this.AddItemInternal((byte)(slot - this._slotOffset), item);
         if (result)
         {

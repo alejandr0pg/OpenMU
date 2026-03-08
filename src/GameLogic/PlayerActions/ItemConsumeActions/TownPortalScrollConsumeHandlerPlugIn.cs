@@ -28,6 +28,11 @@ public class TownPortalScrollConsumeHandlerPlugIn : BaseConsumeHandlerPlugIn
     /// <inheritdoc />
     public override async ValueTask<bool> ConsumeItemAsync(Player player, Item item, Item? targetItem, FruitUsage fruitUsage)
     {
+        if (player.CurrentMiniGame is not null)
+        {
+            return false;
+        }
+
         if (await base.ConsumeItemAsync(player, item, targetItem, fruitUsage).ConfigureAwait(false))
         {
             var targetMapDef = player.CurrentMap!.Definition.SafezoneMap ?? player.SelectedCharacter!.CharacterClass!.HomeMap;

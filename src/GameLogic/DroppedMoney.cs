@@ -145,7 +145,7 @@ public sealed class DroppedMoney : AsyncDisposable, ILocateable
             }
             catch (Exception e)
             {
-                Debug.Fail(e.Message, e.StackTrace);
+                AsyncVoidErrorHandler.HandleException(e, nameof(DroppedMoney));
             }
         }
 
@@ -161,7 +161,7 @@ public sealed class DroppedMoney : AsyncDisposable, ILocateable
         }
         catch (Exception ex)
         {
-            Debug.Fail(ex.Message, ex.StackTrace);
+            AsyncVoidErrorHandler.HandleException(ex, nameof(DroppedMoney));
         }
     }
 }

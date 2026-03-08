@@ -18,6 +18,7 @@ using MUnique.OpenMU.Persistence.EntityFramework;
 /// </summary>
 [ApiController]
 [Route("")]
+[DaprAuthFilter]
 public class ConfigurationChangeController : ControllerBase
 {
     private readonly IConfigurationChangeListener _changeListener;
