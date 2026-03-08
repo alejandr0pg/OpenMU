@@ -4,36 +4,44 @@
 
 namespace MUnique.OpenMU.Web.AdminPanel;
 
+using System;
+using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Middleware that rejects requests not coming through an authenticated reverse proxy.
-/// Acts as defense-in-depth: even if the admin panel port is exposed directly,
-/// unauthenticated requests are blocked at the application level.
+/// Middleware that enforces Basic Auth for the admin panel.
+/// Validates credentials against ADMIN_USER and ADMIN_PASSWORD environment variables.
 /// </summary>
 public sealed class ReverseProxyAuthMiddleware
 {
-    private static readonly string[] PublicPrefixes = ["/_framework", "/_blazor", "/_content", "/css", "/js", "/favicon"];
+    private static readonly string[] PublicPrefixes =
+        ["/_framework", "/_blazor", "/_content", "/css", "/js", "/favicon", "/auth/"];
 
     private readonly RequestDelegate _next;
     private readonly ILogger<ReverseProxyAuthMiddleware> _logger;
+    private readonly string _adminUser;
+    private readonly string _adminPasswordHash;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ReverseProxyAuthMiddleware"/> class.
     /// </summary>
-    /// <param name="next">The next middleware in the pipeline.</param>
-    /// <param name="logger">The logger.</param>
     public ReverseProxyAuthMiddleware(RequestDelegate next, ILogger<ReverseProxyAuthMiddleware> logger)
     {
         this._next = next;
         this._logger = logger;
+        this._adminUser = Environment.GetEnvironmentVariable("ADMIN_USER") ?? "admin";
+        this._adminPasswordHash = Environment.GetEnvironmentVariable("ADMIN_PASSWORD_HASH") ?? string.Empty;
+
+        if (string.IsNullOrEmpty(this._adminPasswordHash))
+        {
+            this._logger.LogWarning("ADMIN_PASSWORD_HASH not set. Admin panel is NOT secured. Set it via environment variable.");
+        }
     }
 
     /// <summary>
     /// Invokes the middleware.
     /// </summary>
-    /// <param name="context">The HTTP context.</param>
     public async Task InvokeAsync(HttpContext context)
     {
         var path = context.Request.Path.Value ?? string.Empty;
@@ -44,12 +52,15 @@ public sealed class ReverseProxyAuthMiddleware
             return;
         }
 
-        if (!HasProxyAuthentication(context))
+        if (!this.ValidateCredentials(context))
         {
-            this._logger.LogWarning("Rejected unauthenticated request to {Path} from {IP}", path, context.Connection.RemoteIpAddress);
+            this._logger.LogWarning(
+                "Rejected unauthenticated request to {Path} from {IP}",
+                path, context.Connection.RemoteIpAddress);
+
             context.Response.StatusCode = 401;
             context.Response.Headers.Append("WWW-Authenticate", "Basic realm=\"OpenMU Admin\"");
-            await context.Response.WriteAsync("Authentication required. Access the admin panel through the reverse proxy.").ConfigureAwait(false);
+            await context.Response.WriteAsync("Authentication required.").ConfigureAwait(false);
             return;
         }
 
@@ -58,12 +69,44 @@ public sealed class ReverseProxyAuthMiddleware
 
     private static bool IsPublicResource(string path)
     {
-        return Array.Exists(PublicPrefixes, prefix => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+        return Array.Exists(PublicPrefixes, prefix =>
+            path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static bool HasProxyAuthentication(HttpContext context)
+    private bool ValidateCredentials(HttpContext context)
     {
-        return context.Request.Headers.ContainsKey("Authorization")
-            || context.Request.Headers.ContainsKey("X-WEBAUTH-USER");
+        if (string.IsNullOrEmpty(this._adminPasswordHash))
+        {
+            return false;
+        }
+
+        var authHeader = context.Request.Headers["Authorization"].ToString();
+        if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        try
+        {
+            var encoded = authHeader["Basic ".Length..].Trim();
+            var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
+            var separatorIndex = decoded.IndexOf(':');
+
+            if (separatorIndex < 0)
+            {
+                return false;
+            }
+
+            var user = decoded[..separatorIndex];
+            var password = decoded[(separatorIndex + 1)..];
+
+            return string.Equals(user, this._adminUser, StringComparison.Ordinal)
+                && BCrypt.Net.BCrypt.Verify(password, this._adminPasswordHash);
+        }
+        catch (Exception ex)
+        {
+            this._logger.LogWarning(ex, "Failed to parse Basic Auth header.");
+            return false;
+        }
     }
 }
