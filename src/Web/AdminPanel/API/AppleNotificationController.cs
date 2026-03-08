@@ -1,30 +1,24 @@
 namespace MUnique.OpenMU.Web.API;
 
 using System;
-using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using MUnique.OpenMU.Persistence;
 
 /// <summary>
 /// Handles Sign In with Apple server-to-server notifications.
-/// Apple sends events when users revoke consent, delete accounts, or change email preferences.
 /// </summary>
 [Route("auth/")]
 public class AppleNotificationController : Controller
 {
-    private readonly IPersistenceContextProvider _contextProvider;
     private readonly ILogger<AppleNotificationController> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AppleNotificationController"/> class.
     /// </summary>
-    public AppleNotificationController(
-        IPersistenceContextProvider contextProvider,
-        ILogger<AppleNotificationController> logger)
+    public AppleNotificationController(ILogger<AppleNotificationController> logger)
     {
-        this._contextProvider = contextProvider;
         this._logger = logger;
     }
 
@@ -42,30 +36,21 @@ public class AppleNotificationController : Controller
 
         try
         {
-            var handler = new JwtSecurityTokenHandler();
-            var token = handler.ReadJwtToken(payload);
-            var eventsClaim = token.Claims
-                .FirstOrDefault(c => c.Type == "events")?.Value;
-
-            if (string.IsNullOrEmpty(eventsClaim))
+            var claims = ParseJwtPayload(payload);
+            if (claims == null)
             {
-                this._logger.LogWarning("Apple notification missing events claim.");
+                this._logger.LogWarning("Apple notification: could not parse JWT payload.");
                 return this.Ok();
             }
 
-            using var doc = JsonDocument.Parse(eventsClaim);
-            var root = doc.RootElement;
-            var eventType = root.TryGetProperty("type", out var typeProp)
-                ? typeProp.GetString()
-                : null;
-
-            var sub = token.Subject;
+            var eventType = GetNestedEventType(claims);
+            var sub = claims.TryGetProperty("sub", out var subProp) ? subProp.GetString() : null;
 
             this._logger.LogInformation(
                 "Apple notification: type={EventType}, sub={Subject}",
                 eventType, sub);
 
-            await this.HandleEventAsync(eventType, sub).ConfigureAwait(false);
+            LogEvent(eventType, sub);
 
             return this.Ok();
         }
@@ -76,41 +61,67 @@ public class AppleNotificationController : Controller
         }
     }
 
-    private async Task HandleEventAsync(string? eventType, string? appleUserId)
+    private static JsonElement? ParseJwtPayload(string jwt)
     {
-        if (string.IsNullOrEmpty(appleUserId))
+        var parts = jwt.Split('.');
+        if (parts.Length < 2)
         {
-            return;
+            return null;
         }
 
+        var padded = parts[1]
+            .Replace('-', '+')
+            .Replace('_', '/');
+        switch (padded.Length % 4)
+        {
+            case 2: padded += "=="; break;
+            case 3: padded += "="; break;
+        }
+
+        var bytes = Convert.FromBase64String(padded);
+        var json = Encoding.UTF8.GetString(bytes);
+        using var doc = JsonDocument.Parse(json);
+        return doc.RootElement.Clone();
+    }
+
+    private static string? GetNestedEventType(JsonElement claims)
+    {
+        if (!claims.TryGetProperty("events", out var eventsProp))
+        {
+            return null;
+        }
+
+        var eventsJson = eventsProp.ValueKind == JsonValueKind.String
+            ? eventsProp.GetString()
+            : eventsProp.GetRawText();
+
+        if (string.IsNullOrEmpty(eventsJson))
+        {
+            return null;
+        }
+
+        using var doc = JsonDocument.Parse(eventsJson);
+        return doc.RootElement.TryGetProperty("type", out var typeProp)
+            ? typeProp.GetString()
+            : null;
+    }
+
+    private void LogEvent(string? eventType, string? appleUserId)
+    {
         switch (eventType)
         {
             case "consent-revoked":
             case "account-delete":
                 this._logger.LogWarning(
-                    "Apple user {AppleUserId} triggered {EventType}. Manual review may be needed.",
+                    "Apple user {AppleUserId} triggered {EventType}.",
                     appleUserId, eventType);
-                break;
-
-            case "email-enabled":
-                this._logger.LogInformation(
-                    "Apple user {AppleUserId} enabled email forwarding.",
-                    appleUserId);
-                break;
-
-            case "email-disabled":
-                this._logger.LogInformation(
-                    "Apple user {AppleUserId} disabled email forwarding.",
-                    appleUserId);
                 break;
 
             default:
                 this._logger.LogInformation(
-                    "Apple notification unknown event: {EventType} for {AppleUserId}.",
+                    "Apple notification: {EventType} for {AppleUserId}.",
                     eventType, appleUserId);
                 break;
         }
-
-        await Task.CompletedTask.ConfigureAwait(false);
     }
 }
