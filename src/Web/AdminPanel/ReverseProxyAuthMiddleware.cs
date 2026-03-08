@@ -16,7 +16,7 @@ using Microsoft.Extensions.Logging;
 public sealed class ReverseProxyAuthMiddleware
 {
     private static readonly string[] PublicPrefixes =
-        ["/_framework", "/_blazor", "/_content", "/css", "/js", "/favicon", "/auth/", "/api/register"];
+        ["/_framework", "/_blazor", "/_content", "/css", "/js", "/favicon", "/auth/", "/api/register", "/health"];
 
     private readonly RequestDelegate _next;
     private readonly ILogger<ReverseProxyAuthMiddleware> _logger;
@@ -45,6 +45,13 @@ public sealed class ReverseProxyAuthMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         var path = context.Request.Path.Value ?? string.Empty;
+
+        if (string.Equals(path, "/health", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.StatusCode = 200;
+            await context.Response.WriteAsync("ok").ConfigureAwait(false);
+            return;
+        }
 
         if (IsPublicResource(path))
         {
