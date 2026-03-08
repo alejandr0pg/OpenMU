@@ -10,7 +10,7 @@ using MUnique.OpenMU.GameLogic.PlayerActions;
 using MUnique.OpenMU.Network.PlugIns;
 using MUnique.OpenMU.PlugIns;
 
-[PlugIn("OAuth Login Handler", "Handles OAuth login requests")]
+[PlugIn]
 [Guid("12345678-1234-1234-1234-1234567890AB")]
 [BelongsToGroup(LogInOutGroup.GroupKey)]
 public class OAuthLoginHandlerPlugIn : ISubPacketHandlerPlugIn
