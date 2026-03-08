@@ -147,6 +147,36 @@ public static class ConnectionExtensions
     }
 
     /// <summary>
+    /// Sends a <see cref="OAuthLogin" /> to this connection.
+    /// </summary>
+    /// <param name="connection">The connection.</param>
+    /// <param name="provider">0=Google, 1=Facebook, 2=Apple</param>
+    /// <param name="token">The OAuth token.</param>
+    /// <remarks>
+    /// Is sent by the client when: The player tries to log into the game using OAuth.
+    /// Causes reaction on server side: The server is authenticating the token. If it's correct, the state of the player is proceeding to be logged in.
+    /// </remarks>
+    public static async ValueTask SendOAuthLoginAsync(this IConnection? connection, byte @provider, string @token)
+    {
+        if (connection is null)
+        {
+            return;
+        }
+
+        int WritePacket()
+        {
+            var length = OAuthLoginRef.Length;
+            var packet = new OAuthLoginRef(connection.Output.GetSpan(length)[..length]);
+            packet.Provider = @provider;
+            packet.Token = @token;
+
+            return packet.Header.Length;
+        }
+
+        await connection.SendAsync(WritePacket).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Sends a <see cref="LoginLongPassword" /> to this connection.
     /// </summary>
     /// <param name="connection">The connection.</param>

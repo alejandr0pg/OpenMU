@@ -168,6 +168,7 @@
   * [C3 F1 01 - Login075 (by client)](C3-F1-01-Login075_by-client.md)
   * [C3 F1 02 - LogOut (by client)](C3-F1-02-LogOut_by-client.md)
   * [C3 F1 03 - LogOutByCheatDetection (by client)](C3-F1-03-LogOutByCheatDetection_by-client.md)
+  * [C3 F1 04 - OAuthLogin (by client)](C3-F1-04-OAuthLogin_by-client.md)
   * [C1 F2 00 - ResetCharacterPointRequest (by client)](C1-F2-00-ResetCharacterPointRequest_by-client.md)
   * [C1 F3 00 - RequestCharacterList (by client)](C1-F3-00-RequestCharacterList_by-client.md)
   * [C1 F3 01 - CreateCharacter (by client)](C1-F3-01-CreateCharacter_by-client.md)

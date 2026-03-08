@@ -17,6 +17,7 @@ services:
       - grafana
       - zipkin
       - prometheus
+      - adminPanel
 
   grafana:
     image: grafana/grafana:9.5.14
@@ -93,18 +94,18 @@ services:
     ports:
       - "5672"
 
-  database:
-    image: postgres
-    container_name: postgres
-    restart: always
-    environment:
-      POSTGRES_PASSWORD: admin
-      POSTGRES_DB: openmu
-      POSTGRES_USER: postgres
-    ports:
-      - "5432"
-    volumes:
-      - dbdata:/var/lib/postgresql
+  # database:
+  #   image: postgres
+  #   container_name: postgres
+  #   restart: always
+  #   environment:
+  #     POSTGRES_PASSWORD: admin
+  #     POSTGRES_DB: openmu
+  #     POSTGRES_USER: postgres
+  #   ports:
+  #     - "5432"
+  #   volumes:
+  #     - dbdata:/var/lib/postgresql
 
   zipkin:
     image: openzipkin/zipkin
@@ -123,10 +124,17 @@ services:
     environment:
       APPID: connectServer
       ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__EntityDataContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__TypedContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__ConfigurationContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__AccountContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__TradeContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__FriendContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__GuildContext: "${POSTGRES_CONNECTION_STRING}"
     depends_on:
       - rabbit
       - zipkin
-      - database
+      # - database
 
   connectServer-dapr:
     image: "daprio/daprd:latest"
@@ -149,9 +157,16 @@ services:
       - "9464" # Prometheus
     environment:
       ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__EntityDataContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__TypedContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__ConfigurationContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__AccountContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__TradeContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__FriendContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__GuildContext: "${POSTGRES_CONNECTION_STRING}"
     depends_on:
       - zipkin
-      - database
+      # - database
 
   loginServer-dapr:
     image: "daprio/daprd:latest"
@@ -174,9 +189,16 @@ services:
       - "9464" # Prometheus
     environment:
       ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__EntityDataContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__TypedContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__ConfigurationContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__AccountContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__TradeContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__FriendContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__GuildContext: "${POSTGRES_CONNECTION_STRING}"
     depends_on:
       - chatServer-dapr
-      - database
+      # - database
       - zipkin
 
   friendServer-dapr:
@@ -200,8 +222,15 @@ services:
       - "9464" # Prometheus
     environment:
       ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__EntityDataContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__TypedContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__ConfigurationContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__AccountContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__TradeContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__FriendContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__GuildContext: "${POSTGRES_CONNECTION_STRING}"
     depends_on:
-      - database
+      # - database
       - zipkin
 
   guildServer-dapr:
@@ -223,12 +252,19 @@ services:
     environment:
       APPID: chatServer
       ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__EntityDataContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__TypedContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__ConfigurationContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__AccountContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__TradeContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__FriendContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__GuildContext: "${POSTGRES_CONNECTION_STRING}"
     ports:
       - "55980:55980"
       - "50001"
       - "9464" # Prometheus
     depends_on:
-      - database
+      # - database
       - zipkin
 
   chatServer-dapr:
@@ -248,16 +284,23 @@ services:
   adminPanel:
     image: munique/openmu-admin
     container_name: adminPanel
-    depends_on:
-      - database
     ports:
       - "8080"
       - "9464" # Prometheus
     environment:
       ASPNETCORE_URLS: http://+:8080
       PATH_BASE: /admin/
+      ConnectionStrings__EntityDataContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__TypedContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__ConfigurationContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__AccountContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__TradeContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__FriendContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__GuildContext: "${POSTGRES_CONNECTION_STRING}"
     volumes:
       - ./.htpasswd:/etc/nginx/.htpasswd
+    depends_on:
+      - zipkin
 
   adminPanel-dapr:
     image: "daprio/daprd:latest"
@@ -266,7 +309,6 @@ services:
                 "-components-path", "/components",
                 "-config", "/components/config.yaml",
                 "-placement-host-address", "dapr-placement:50006"  ]
-
     depends_on:
       - adminPanel
     network_mode: "service:adminPanel"
@@ -290,13 +332,20 @@ services:
       APPID: gameServer0
       PATH_BASE: /gameServer/0/
       ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__EntityDataContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__TypedContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__ConfigurationContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__AccountContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__TradeContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__FriendContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__GuildContext: "${POSTGRES_CONNECTION_STRING}"
     depends_on:
       - connectServer-dapr
       - loginServer-dapr
       - friendServer-dapr
       - rabbit
       - zipkin
-      - database
+      # - database
       - loki
 
   gameServer0-dapr:
@@ -329,13 +378,20 @@ services:
       APPID: gameServer1
       PATH_BASE: /gameServer/1/
       ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__EntityDataContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__TypedContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__ConfigurationContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__AccountContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__TradeContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__FriendContext: "${POSTGRES_CONNECTION_STRING}"
+      ConnectionStrings__GuildContext: "${POSTGRES_CONNECTION_STRING}"
     depends_on:
       - connectServer-dapr
       - loginServer-dapr
       - friendServer-dapr
       - rabbit
       - zipkin
-      - database
+      # - database
       - loki
 
   gameServer1-dapr:

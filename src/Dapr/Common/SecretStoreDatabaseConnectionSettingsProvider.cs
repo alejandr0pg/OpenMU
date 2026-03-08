@@ -1,4 +1,4 @@
-﻿// <copyright file="SecretStoreDatabaseConnectionSettingsProvider.cs" company="MUnique">
+// <copyright file="SecretStoreDatabaseConnectionSettingsProvider.cs" company="MUnique">
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 // </copyright>
 
@@ -8,17 +8,19 @@ using System.Threading;
 using global::Dapr;
 using global::Dapr.Client;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MUnique.OpenMU.Persistence.EntityFramework;
 
 /// <summary>
 /// Implementation of <see cref="IDatabaseConnectionSettingProvider"/> which retrieves the settings from the
-/// configured Dapr secret storage.
+/// configured Dapr secret storage or configuration.
 /// </summary>
 public class SecretStoreDatabaseConnectionSettingsProvider : IDatabaseConnectionSettingProvider
 {
     private const string SecretStoreName = "secrets";
     private readonly DaprClient _daprClient;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<SecretStoreDatabaseConnectionSettingsProvider> _logger;
     private readonly Dictionary<string, ConnectionSetting> _connectionSettings = new(StringComparer.InvariantCultureIgnoreCase);
     private bool _isInitialized;
@@ -27,10 +29,12 @@ public class SecretStoreDatabaseConnectionSettingsProvider : IDatabaseConnection
     /// Initializes a new instance of the <see cref="SecretStoreDatabaseConnectionSettingsProvider" /> class.
     /// </summary>
     /// <param name="daprClient">The dapr client.</param>
+    /// <param name="configuration">The configuration.</param>
     /// <param name="logger">The logger.</param>
-    public SecretStoreDatabaseConnectionSettingsProvider(DaprClient daprClient, ILogger<SecretStoreDatabaseConnectionSettingsProvider> logger)
+    public SecretStoreDatabaseConnectionSettingsProvider(DaprClient daprClient, IConfiguration configuration, ILogger<SecretStoreDatabaseConnectionSettingsProvider> logger)
     {
         this._daprClient = daprClient;
+        this._configuration = configuration;
         this._logger = logger;
     }
 
@@ -49,6 +53,13 @@ public class SecretStoreDatabaseConnectionSettingsProvider : IDatabaseConnection
             async () =>
             {
                 this._isInitialized = false;
+
+                // Check configuration first
+                if (this._configuration.GetSection("ConnectionStrings").GetChildren().Any())
+                {
+                    this._isInitialized = true;
+                }
+
                 while (!this._isInitialized && !cancellationToken.IsCancellationRequested)
                 {
                     try
@@ -65,7 +76,10 @@ public class SecretStoreDatabaseConnectionSettingsProvider : IDatabaseConnection
                                 DatabaseEngine = DatabaseEngine.Npgsql,
                             };
 
-                            this._connectionSettings.Add(contextTypeName, setting);
+                            lock (this._connectionSettings)
+                            {
+                                this._connectionSettings[contextTypeName] = setting;
+                            }
                         }
 
                         Console.WriteLine("secrects retrieved :)");
@@ -74,8 +88,6 @@ public class SecretStoreDatabaseConnectionSettingsProvider : IDatabaseConnection
                     }
                     catch (DaprException ex)
                     {
-                        // This should never happen - however, it may happen when we are using a Dapr secret store.
-                        // It may not be started yet, and the implementation to get it does retrieve it in the constructor already.
                         this._logger.LogWarning(ex, "Error occurred when retrieving the connection strings from the secrets store. Trying again in 3 seconds...");
                         Console.WriteLine("Error occurred when retrieving the connection strings from the secrets store. Trying again in 3 seconds...");
                         await Task.Delay(3000, cancellationToken).ConfigureAwait(false);
@@ -97,11 +109,28 @@ public class SecretStoreDatabaseConnectionSettingsProvider : IDatabaseConnection
     /// <inheritdoc />
     public ConnectionSetting GetConnectionSetting(Type contextType)
     {
-        if (this._connectionSettings.TryGetValue(contextType.FullName ?? contextType.Name, out var result))
+        lock (this._connectionSettings)
         {
-            return result;
+            if (this._connectionSettings.TryGetValue(contextType.FullName ?? contextType.Name, out var result))
+            {
+                return result;
+            }
         }
 
-        throw new InvalidOperationException($"No connection string for type '{contextType.FullName}' stored in the secret store.");
+        // Fallback to configuration (Environment Variables)
+        var connectionString = this._configuration.GetConnectionString(contextType.Name) 
+                            ?? this._configuration.GetConnectionString(contextType.FullName);
+
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            return new ConnectionSetting
+            {
+                ContextTypeName = contextType.FullName ?? contextType.Name,
+                ConnectionString = connectionString,
+                DatabaseEngine = DatabaseEngine.Npgsql
+            };
+        }
+
+        throw new InvalidOperationException($"No connection string for type '{contextType.FullName}' stored in the secret store or configuration.");
     }
 }

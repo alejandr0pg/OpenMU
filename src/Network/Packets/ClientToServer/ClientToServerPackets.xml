@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <PacketDefinitions xmlns="http://www.munique.net/OpenMU/PacketDefinitions">
   <Description>This file contains all packet definitions for packets which are sent from game client to the game server.</Description>
   <Structures>
@@ -81,6 +81,30 @@
           <Index>13</Index>
           <Type>String</Type>
           <Name>Message</Name>
+        </Field>
+      </Fields>
+    </Packet>
+    <Packet>
+      <HeaderType>C3HeaderWithSubCode</HeaderType>
+      <Code>F1</Code>
+      <SubCode>04</SubCode>
+      <Name>OAuthLogin</Name>
+      <Length>0</Length>
+      <Direction>ClientToServer</Direction>
+      <SentWhen>The player tries to log into the game using OAuth.</SentWhen>
+      <CausedReaction>The server is authenticating the token. If it's correct, the state of the player is proceeding to be logged in.</CausedReaction>
+      <Fields>
+        <Field>
+          <Index>4</Index>
+          <Type>Byte</Type>
+          <Name>Provider</Name>
+          <Description>0=Google, 1=Facebook, 2=Apple</Description>
+        </Field>
+        <Field>
+          <Index>5</Index>
+          <Type>String</Type>
+          <Name>Token</Name>
+          <Description>The OAuth token.</Description>
         </Field>
       </Fields>
     </Packet>
