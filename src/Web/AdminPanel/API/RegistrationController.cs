@@ -68,7 +68,9 @@ public class RegistrationController : Controller
         try
         {
             using var context = this._contextProvider.CreateNewContext();
-            var existing = await context.GetAccountByLoginNameAsync(request.Username).ConfigureAwait(false);
+            var accounts = await context.GetAsync<Account>().ConfigureAwait(false);
+            var existing = accounts.FirstOrDefault(a =>
+                string.Equals(a.LoginName, request.Username, StringComparison.OrdinalIgnoreCase));
             if (existing is not null)
             {
                 return this.Conflict("Username already exists.");
