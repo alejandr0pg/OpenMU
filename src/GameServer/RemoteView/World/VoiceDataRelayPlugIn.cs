@@ -13,7 +13,6 @@ using MUnique.OpenMU.PlugIns;
 
 /// <summary>
 /// Sends relayed voice chat data to the client.
-/// Packet format: C2 [LenHi] [LenLo] 0xD5 0x01 [SenderIdHi] [SenderIdLo] [SenderX] [SenderY] [OpusData...]
 /// </summary>
 [PlugIn]
 [Display(Name = "Voice Data Relay", Description = "Relays voice data to the client.")]
@@ -24,14 +23,13 @@ public class VoiceDataRelayPlugIn : IVoiceDataRelayPlugIn
     private const byte PacketType = 0xC2;
     private const byte VoiceCode = 0xD5;
     private const byte VoiceSubCode = 0x01;
-    private const int HeaderSize = 9; // C2(1) + Len(2) + Code(1) + Sub(1) + SenderId(2) + X(1) + Y(1)
+    private const int HeaderSize = 9;
 
     private readonly RemotePlayer _player;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="VoiceDataRelayPlugIn"/> class.
     /// </summary>
-    /// <param name="player">The player.</param>
     public VoiceDataRelayPlugIn(RemotePlayer player) => this._player = player;
 
     /// <inheritdoc/>
@@ -47,7 +45,7 @@ public class VoiceDataRelayPlugIn : IVoiceDataRelayPlugIn
         var senderId = speaker.GetId(this._player);
         var totalLength = HeaderSize + opusData.Length;
 
-        int Write()
+        using (await connection.OutputLock.LockAsync().ConfigureAwait(false))
         {
             var span = connection.Output.GetSpan(totalLength)[..totalLength];
             span[0] = PacketType;
@@ -60,9 +58,8 @@ public class VoiceDataRelayPlugIn : IVoiceDataRelayPlugIn
             span[7] = senderX;
             span[8] = senderY;
             opusData.Span.CopyTo(span[HeaderSize..]);
-            return totalLength;
+            connection.Output.Advance(totalLength);
+            await connection.Output.FlushAsync().ConfigureAwait(false);
         }
-
-        await connection.SendAsync(Write).ConfigureAwait(false);
     }
 }
