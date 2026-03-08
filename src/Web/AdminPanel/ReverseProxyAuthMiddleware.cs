@@ -16,7 +16,7 @@ using Microsoft.Extensions.Logging;
 public sealed class ReverseProxyAuthMiddleware
 {
     private static readonly string[] PublicPrefixes =
-        ["/_framework", "/_blazor", "/_content", "/css", "/js", "/favicon", "/auth/", "/api/register", "/health"];
+        ["/_framework", "/_blazor", "/_content", "/css", "/js", "/favicon", "/auth/", "/api/register", "/api/status", "/api/is-online", "/health"];
 
     private readonly RequestDelegate _next;
     private readonly ILogger<ReverseProxyAuthMiddleware> _logger;
