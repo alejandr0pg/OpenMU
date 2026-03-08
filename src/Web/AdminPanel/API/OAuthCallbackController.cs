@@ -78,21 +78,16 @@ public class OAuthCallbackController : Controller
 
     private static string BuildHtmlPage(string title, string message)
     {
-        return $"""
-            <!DOCTYPE html>
-            <html>
-            <head><title>{title}</title>
-            <style>
-                body {{ font-family: sans-serif; display: flex; justify-content: center;
-                       align-items: center; min-height: 100vh; margin: 0;
-                       background: #1a1a2e; color: #e0e0e0; }}
-                .card {{ text-align: center; padding: 2rem; border-radius: 12px;
-                         background: #16213e; border: 1px solid #0f3460; }}
-                h1 {{ color: #e94560; margin-bottom: 0.5rem; }}
-            </style></head>
-            <body><div class="card"><h1>{title}</h1><p>{message}</p></div></body>
-            </html>
-            """;
+        return "<!DOCTYPE html><html><head><title>" + title + "</title>"
+            + "<style>"
+            + "body{font-family:sans-serif;display:flex;justify-content:center;"
+            + "align-items:center;min-height:100vh;margin:0;background:#1a1a2e;color:#e0e0e0}"
+            + ".card{text-align:center;padding:2rem;border-radius:12px;"
+            + "background:#16213e;border:1px solid #0f3460}"
+            + "h1{color:#e94560;margin-bottom:.5rem}"
+            + "</style></head>"
+            + "<body><div class='card'><h1>" + title + "</h1>"
+            + "<p>" + message + "</p></div></body></html>";
     }
 
     private sealed record PendingAuth(string Code, DateTime Expiry);
