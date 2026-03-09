@@ -37,7 +37,7 @@ public static class LocateableExtensions
     public static IEnumerable<T> WhereNotInvisible<T>(this IEnumerable<T> locateables)
         where T : IAttackable
     {
-        return locateables.Where(l => l.Attributes[Stats.IsInvisible] == 0);
+        return locateables.Where(l => l.Attributes is null || l.Attributes[Stats.IsInvisible] == 0);
     }
 
     /// <summary>

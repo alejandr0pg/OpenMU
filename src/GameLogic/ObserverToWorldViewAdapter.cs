@@ -5,6 +5,7 @@
 namespace MUnique.OpenMU.GameLogic;
 
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using MUnique.OpenMU.GameLogic.NPC;
 using MUnique.OpenMU.GameLogic.Views.World;
 using Nito.AsyncEx;
@@ -51,6 +52,11 @@ public sealed class ObserverToWorldViewAdapter : AsyncDisposable, IBucketMapObse
 
         if (!item.IsActive())
         {
+            if (item is Player inactivePlayer)
+            {
+                this._adaptee.Logger.LogWarning("[ScopeDebug] Player {Name} (Id={Id}) skipped: IsActive=false (IsAlive={IsAlive}, IsTeleporting={IsTeleporting})",
+                    inactivePlayer.SelectedCharacter?.Name, inactivePlayer.Id, inactivePlayer.IsAlive, inactivePlayer.IsTeleporting);
+            }
             return;
         }
 
@@ -58,7 +64,14 @@ public sealed class ObserverToWorldViewAdapter : AsyncDisposable, IBucketMapObse
         {
             if (item is Player { IsInvisible: false } player)
             {
+                this._adaptee.Logger.LogInformation("[ScopeDebug] Sending NewPlayersInScope for {Name} (Id={Id}) to observer {Observer}",
+                    player.SelectedCharacter?.Name, player.Id, (this._adaptee as Player)?.SelectedCharacter?.Name ?? "unknown");
                 await this._adaptee.InvokeViewPlugInAsync<INewPlayersInScopePlugIn>(p => p.NewPlayersInScopeAsync(player.GetAsEnumerable())).ConfigureAwait(false);
+            }
+            else if (item is Player { IsInvisible: true } invisiblePlayer)
+            {
+                this._adaptee.Logger.LogWarning("[ScopeDebug] Player {Name} (Id={Id}) skipped: IsInvisible=true",
+                    invisiblePlayer.SelectedCharacter?.Name, invisiblePlayer.Id);
             }
             else if (item is NonPlayerCharacter npc)
             {
@@ -189,10 +202,17 @@ public sealed class ObserverToWorldViewAdapter : AsyncDisposable, IBucketMapObse
             newItems.ForEach(item => this._observingObjects.Add(item));
         }
 
-        var players = newItems.OfType<Player>().WhereActive().WhereNotInvisible();
-        if (players.Any())
+        var allPlayers = newItems.OfType<Player>().ToList();
+        if (allPlayers.Count > 0)
         {
-            await this._adaptee.InvokeViewPlugInAsync<INewPlayersInScopePlugIn>(p => p.NewPlayersInScopeAsync(players, false)).ConfigureAwait(false);
+            var activePlayers = allPlayers.Where(p => p.IsActive()).ToList();
+            var visiblePlayers = activePlayers.Where(p => p.Attributes?[GameLogic.Attributes.Stats.IsInvisible] == 0 || p.Attributes is null).ToList();
+            this._adaptee.Logger.LogInformation("[ScopeDebug] NewLocateablesInScope: {Total} players total, {Active} active, {Visible} visible for observer {Observer}",
+                allPlayers.Count, activePlayers.Count, visiblePlayers.Count, (this._adaptee as Player)?.SelectedCharacter?.Name ?? "unknown");
+            if (visiblePlayers.Count > 0)
+            {
+                await this._adaptee.InvokeViewPlugInAsync<INewPlayersInScopePlugIn>(p => p.NewPlayersInScopeAsync(visiblePlayers, false)).ConfigureAwait(false);
+            }
         }
 
         var npcs = newItems.OfType<NonPlayerCharacter>().WhereActive();
