@@ -102,6 +102,11 @@ public sealed class Monster : AttackableNpcBase, IAttackable, IAttacker, ISuppor
     /// <param name="target">The target.</param>
     public async ValueTask AttackAsync(IAttackable target)
     {
+        if (!this.IsAlive)
+        {
+            return;
+        }
+
         await target.AttackByAsync(this, null, false).ConfigureAwait(false);
 
         await this.ForEachWorldObserverAsync<IShowAnimationPlugIn>(p => p.ShowMonsterAttackAnimationAsync(this, target, this.GetDirectionTo(target)), true).ConfigureAwait(false);
@@ -321,6 +326,7 @@ public sealed class Monster : AttackableNpcBase, IAttackable, IAttacker, ISuppor
     /// <inheritdoc />
     protected override async ValueTask OnDeathAsync(IAttacker attacker)
     {
+        this._intelligence.Pause();
         await this._walker.StopAsync().ConfigureAwait(false);
         await base.OnDeathAsync(attacker).ConfigureAwait(false);
     }
