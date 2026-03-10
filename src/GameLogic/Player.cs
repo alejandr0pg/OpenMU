@@ -24,6 +24,7 @@ using MUnique.OpenMU.GameLogic.Views;
 using MUnique.OpenMU.GameLogic.Views.Character;
 using MUnique.OpenMU.GameLogic.Views.Inventory;
 using MUnique.OpenMU.GameLogic.Views.MuHelper;
+using MUnique.OpenMU.GameLogic.Views.NPC;
 using MUnique.OpenMU.GameLogic.Views.Pet;
 using MUnique.OpenMU.GameLogic.Views.PlayerShop;
 using MUnique.OpenMU.GameLogic.Views.Quest;
@@ -2443,7 +2444,19 @@ public class Player : AsyncDisposable, IBucketMapObserver, IAttackable, IAttacke
         this.Inventory = new InventoryStorage(this, this.GameContext);
         this.ShopStorage = new ShopStorage(selectedCharacter);
         this.TemporaryStorage = new Storage(InventoryConstants.TemporaryStorageSize, new TemporaryItemStorage());
-        this.Vault = null; // vault storage is getting set when vault npc is opened.
+        // Pre-initialize vault so items can be sent to the client during login.
+        // The full Storage wrapper is still created when the vault NPC is opened.
+        if (this.Account?.Vault is not null)
+        {
+            var warehouseSize = this.Account.IsVaultExtended
+                ? InventoryConstants.WarehouseSize * 2
+                : InventoryConstants.WarehouseSize;
+            this.Vault = new Storage(warehouseSize, this.Account.Vault);
+        }
+        else
+        {
+            this.Vault = null;
+        }
         this.SkillList = new SkillList(this);
         this.SetReclaimableAttributesBeforeEnterGame();
         if (this.DetermineComboDefinition() is { } comboDefinition)
@@ -2453,6 +2466,14 @@ public class Player : AsyncDisposable, IBucketMapObserver, IAttackable, IAttacke
 
         await this.InvokeViewPlugInAsync<IUpdateCharacterStatsPlugIn>(p => p.UpdateCharacterStatsAsync()).ConfigureAwait(false);
         await this.InvokeViewPlugInAsync<IUpdateInventoryListPlugIn>(p => p.UpdateInventoryListAsync()).ConfigureAwait(false);
+
+        // Send vault items early so the client can pre-cache textures
+        if (this.Vault is not null)
+        {
+            await this.InvokeViewPlugInAsync<IOpenNpcWindowPlugIn>(p => p.OpenNpcWindowAsync(NpcWindow.VaultStorage)).ConfigureAwait(false);
+            await this.InvokeViewPlugInAsync<IShowMerchantStoreItemListPlugIn>(p => p.ShowMerchantStoreItemListAsync(this.Vault.ItemStorage.Items, StoreKind.Normal)).ConfigureAwait(false);
+        }
+
         await this.InvokeViewPlugInAsync<ISkillListViewPlugIn>(p => p.UpdateSkillListAsync()).ConfigureAwait(false);
         await this.InvokeViewPlugInAsync<IApplyKeyConfigurationPlugIn>(p => p.ApplyKeyConfigurationAsync()).ConfigureAwait(false);
         await this.InvokeViewPlugInAsync<IQuestStateResponsePlugIn>(p => p.ShowQuestStateAsync(null)).ConfigureAwait(false); // Legacy quest system
