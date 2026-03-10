@@ -275,6 +275,27 @@ public class GameContext : AsyncDisposable, IGameContext
                 case MiniGameType.BloodCastle:
                     miniGameContext = new BloodCastleContext(miniGameKey, miniGameDefinition, this, this._mapInitializer);
                     break;
+                case MiniGameType.IllusionTemple:
+                    miniGameContext = new IllusionTempleContext(miniGameKey, miniGameDefinition, this, this._mapInitializer);
+                    break;
+                case MiniGameType.Doppelganger:
+                    miniGameContext = new DoppelgangerContext(miniGameKey, miniGameDefinition, this, this._mapInitializer);
+                    break;
+                case MiniGameType.ImperialGuardian:
+                    miniGameContext = new ImperialGuardianContext(miniGameKey, miniGameDefinition, this, this._mapInitializer);
+                    break;
+                case MiniGameType.Raklion:
+                    miniGameContext = new RaklionContext(miniGameKey, miniGameDefinition, this, this._mapInitializer);
+                    break;
+                case MiniGameType.Crywolf:
+                    miniGameContext = new CrywolfContext(miniGameKey, miniGameDefinition, this, this._mapInitializer);
+                    break;
+                case MiniGameType.Kanturu:
+                    miniGameContext = new KanturuContext(miniGameKey, miniGameDefinition, this, this._mapInitializer);
+                    break;
+                case MiniGameType.CastleSiege:
+                    miniGameContext = new CastleSiegeContext(miniGameKey, miniGameDefinition, this, this._mapInitializer);
+                    break;
                 default:
                     miniGameContext = new MiniGameContext(miniGameKey, miniGameDefinition, this, this._mapInitializer);
                     break;

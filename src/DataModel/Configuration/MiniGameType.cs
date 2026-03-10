@@ -38,4 +38,29 @@ public enum MiniGameType
     /// The doppelganger event.
     /// </summary>
     Doppelganger,
+
+    /// <summary>
+    /// The imperial guardian (fortress) event.
+    /// </summary>
+    ImperialGuardian,
+
+    /// <summary>
+    /// The raklion boss event.
+    /// </summary>
+    Raklion,
+
+    /// <summary>
+    /// The crywolf defense event.
+    /// </summary>
+    Crywolf,
+
+    /// <summary>
+    /// The kanturu boss event.
+    /// </summary>
+    Kanturu,
+
+    /// <summary>
+    /// The castle siege event.
+    /// </summary>
+    CastleSiege,
 }

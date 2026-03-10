@@ -41,6 +41,33 @@ public class ShowMiniGameEnterResultViewPlugIn : IShowMiniGameEnterResultPlugIn
             case MiniGameType.ChaosCastle:
                 await this._player.Connection.SendChaosCastleEnterResultAsync(enterResult.ToChaosCastleEnterResult()).ConfigureAwait(false);
                 break;
+            case MiniGameType.IllusionTemple:
+                await this._player.Connection.SendIllusionTempleEnterResultAsync(enterResult.ToIllusionTempleResult()).ConfigureAwait(false);
+                break;
+            case MiniGameType.Doppelganger:
+                // Doppelganger reuses the Illusion Temple result packet format (same 0xBF code space).
+                await this._player.Connection.SendIllusionTempleEnterResultAsync(enterResult.ToIllusionTempleResult()).ConfigureAwait(false);
+                break;
+            case MiniGameType.Raklion:
+                // Raklion reuses the Illusion Temple result packet format.
+                await this._player.Connection.SendIllusionTempleEnterResultAsync(enterResult.ToIllusionTempleResult()).ConfigureAwait(false);
+                break;
+            case MiniGameType.ImperialGuardian:
+                // Imperial Guardian reuses the Illusion Temple result packet format (same 0xBF code space).
+                await this._player.Connection.SendIllusionTempleEnterResultAsync(enterResult.ToIllusionTempleResult()).ConfigureAwait(false);
+                break;
+            case MiniGameType.Crywolf:
+                // Crywolf reuses the Illusion Temple result packet format.
+                await this._player.Connection.SendIllusionTempleEnterResultAsync(enterResult.ToIllusionTempleResult()).ConfigureAwait(false);
+                break;
+            case MiniGameType.Kanturu:
+                // Kanturu reuses the Illusion Temple result packet format.
+                await this._player.Connection.SendIllusionTempleEnterResultAsync(enterResult.ToIllusionTempleResult()).ConfigureAwait(false);
+                break;
+            case MiniGameType.CastleSiege:
+                // Castle Siege reuses the Illusion Temple result packet format.
+                await this._player.Connection.SendIllusionTempleEnterResultAsync(enterResult.ToIllusionTempleResult()).ConfigureAwait(false);
+                break;
             case MiniGameType.Undefined:
                 throw new ArgumentException("undefined game type", nameof(miniGameType));
             default:

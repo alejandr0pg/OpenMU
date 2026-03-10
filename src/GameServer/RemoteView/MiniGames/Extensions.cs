@@ -70,4 +70,23 @@ public static class Extensions
             _ => ChaosCastleEnterResult.EnterResult.Failed,
         };
     }
+
+    /// <summary>
+    /// Converts the <see cref="EnterResult"/> to the corresponding byte result for Illusion Temple.
+    /// </summary>
+    /// <param name="enterResult">The enter result.</param>
+    /// <returns>The converted result byte.</returns>
+    public static byte ToIllusionTempleResult(this EnterResult enterResult)
+    {
+        return enterResult switch
+        {
+            EnterResult.Success => 0,
+            EnterResult.Failed => 1,
+            EnterResult.NotOpen => 2,
+            EnterResult.Full => 5,
+            EnterResult.CharacterLevelTooLow => 1,
+            EnterResult.CharacterLevelTooHigh => 1,
+            _ => 1,
+        };
+    }
 }

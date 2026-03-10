@@ -42,9 +42,26 @@ public class MiniGameOpeningStateRequestAction
             case MiniGameType.DevilSquare:
                 await player.ShowLocalizedBlueMessageAsync(nameof(PlayerMessage.EventMapCreatedOnEntranceWithoutTimetable)).ConfigureAwait(false);
                 break;
-            case MiniGameType.Doppelganger:
             case MiniGameType.IllusionTemple:
-                await player.ShowLocalizedBlueMessageAsync(nameof(PlayerMessage.EventNotImplementedYet)).ConfigureAwait(false);
+                await player.ShowLocalizedBlueMessageAsync(nameof(PlayerMessage.EventMapCreatedOnEntranceWithoutTimetable)).ConfigureAwait(false);
+                break;
+            case MiniGameType.Doppelganger:
+                await player.ShowLocalizedBlueMessageAsync(nameof(PlayerMessage.EventMapCreatedOnEntranceWithoutTimetable)).ConfigureAwait(false);
+                break;
+            case MiniGameType.Raklion:
+                await player.ShowLocalizedBlueMessageAsync(nameof(PlayerMessage.EventMapCreatedOnEntranceWithoutTimetable)).ConfigureAwait(false);
+                break;
+            case MiniGameType.ImperialGuardian:
+                await player.ShowLocalizedBlueMessageAsync(nameof(PlayerMessage.EventMapCreatedOnEntranceWithoutTimetable)).ConfigureAwait(false);
+                break;
+            case MiniGameType.Crywolf:
+                await player.ShowLocalizedBlueMessageAsync(nameof(PlayerMessage.EventMapCreatedOnEntranceWithoutTimetable)).ConfigureAwait(false);
+                break;
+            case MiniGameType.Kanturu:
+                await player.ShowLocalizedBlueMessageAsync(nameof(PlayerMessage.EventMapCreatedOnEntranceWithoutTimetable)).ConfigureAwait(false);
+                break;
+            case MiniGameType.CastleSiege:
+                await player.ShowLocalizedBlueMessageAsync(nameof(PlayerMessage.EventMapCreatedOnEntranceWithoutTimetable)).ConfigureAwait(false);
                 break;
             default:
                 throw new ArgumentOutOfRangeException($"Unhandled event type {miniGameType}.");
