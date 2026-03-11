@@ -86,6 +86,7 @@ internal class EntityFrameworkContextBase : IContext
 
         try
         {
+            this.RemoveDuplicateTrackedEntities();
             await this.Context.SaveChangesAsync(acceptChanges, cancellationToken).ConfigureAwait(false);
 
             if (args is not null)
@@ -104,6 +105,50 @@ internal class EntityFrameworkContextBase : IContext
         {
             sender = s;
             args = e;
+        }
+    }
+
+    private void RemoveDuplicateTrackedEntities()
+    {
+        var entries = this.Context.ChangeTracker.Entries().ToList();
+        var seen = new Dictionary<(string TypeName, string KeyValues), EntityEntry>();
+
+        foreach (var entry in entries)
+        {
+            var entityType = entry.Metadata;
+            var primaryKey = entityType.FindPrimaryKey();
+            if (primaryKey is null)
+            {
+                continue;
+            }
+
+            var keyValues = string.Join(
+                "|",
+                primaryKey.Properties.Select(p => entry.Property(p.Name).CurrentValue?.ToString() ?? "null"));
+            var compositeKey = (entityType.Name, keyValues);
+
+            if (seen.TryGetValue(compositeKey, out var existing))
+            {
+                // Keep the one that is Unchanged or Modified; detach the Added duplicate
+                if (entry.State == EntityState.Added)
+                {
+                    entry.State = EntityState.Detached;
+                }
+                else if (existing.State == EntityState.Added)
+                {
+                    existing.State = EntityState.Detached;
+                    seen[compositeKey] = entry;
+                }
+                else
+                {
+                    // Both are non-Added — detach the newer one
+                    entry.State = EntityState.Detached;
+                }
+            }
+            else
+            {
+                seen[compositeKey] = entry;
+            }
         }
     }
 
