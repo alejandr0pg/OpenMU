@@ -247,14 +247,22 @@ public sealed class CastleSiegeContext : MiniGameContext
             var maximumGameDuration = this.Definition.GameDuration;
             this._remainingTime = maximumGameDuration;
             var ending = DateTime.UtcNow.Add(maximumGameDuration);
+            int tickCount = 0;
 
             while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 this._remainingTime = ending.Subtract(DateTime.UtcNow);
+                tickCount++;
+
+                if (tickCount % 5 == 0)
+                {
+                    await this.BroadcastStateAsync().ConfigureAwait(false);
+                }
             }
 
             this._remainingTime = TimeSpan.Zero;
+            await this.BroadcastStateAsync(playState: 2).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -264,5 +272,16 @@ public sealed class CastleSiegeContext : MiniGameContext
         {
             this.Logger.LogError(ex, "Unexpected error during castle siege event loop: {0}", ex.Message);
         }
+    }
+
+    private async ValueTask BroadcastStateAsync(byte playState = 1)
+    {
+        var remainSec = (ushort)Math.Max(0, this._remainingTime.TotalSeconds);
+        byte crownHolder = this._crownCaptured ? (byte)1 : (byte)2; // 1=Attackers, 2=Defenders
+
+        await this.ForEachPlayerAsync(player =>
+            player.InvokeViewPlugInAsync<ICastleSiegeStateViewPlugin>(
+                p => p.UpdateStateAsync(playState, remainSec, crownHolder)).AsTask())
+            .ConfigureAwait(false);
     }
 }
