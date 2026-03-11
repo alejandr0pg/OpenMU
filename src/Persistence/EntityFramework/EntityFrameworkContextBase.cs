@@ -87,7 +87,18 @@ internal class EntityFrameworkContextBase : IContext
         try
         {
             this.RemoveDuplicateTrackedEntities();
-            await this.Context.SaveChangesAsync(acceptChanges, cancellationToken).ConfigureAwait(false);
+
+            try
+            {
+                await this.Context.SaveChangesAsync(acceptChanges, cancellationToken).ConfigureAwait(false);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("cannot be tracked because another instance"))
+            {
+                // A duplicate slipped through during SaveChangesAsync's internal DetectChanges.
+                // Clean up and retry once.
+                this.RemoveDuplicateTrackedEntities();
+                await this.Context.SaveChangesAsync(acceptChanges, cancellationToken).ConfigureAwait(false);
+            }
 
             if (args is not null)
             {
@@ -110,45 +121,55 @@ internal class EntityFrameworkContextBase : IContext
 
     private void RemoveDuplicateTrackedEntities()
     {
-        var entries = this.Context.ChangeTracker.Entries().ToList();
-        var seen = new Dictionary<(string TypeName, string KeyValues), EntityEntry>();
+        // Disable auto-detect-changes to avoid NavigationFixer conflicts
+        // when enumerating tracked entries.
+        var autoDetect = this.Context.ChangeTracker.AutoDetectChangesEnabled;
+        this.Context.ChangeTracker.AutoDetectChangesEnabled = false;
 
-        foreach (var entry in entries)
+        try
         {
-            var entityType = entry.Metadata;
-            var primaryKey = entityType.FindPrimaryKey();
-            if (primaryKey is null)
-            {
-                continue;
-            }
+            var entries = this.Context.ChangeTracker.Entries().ToList();
+            var seen = new Dictionary<(string TypeName, string KeyValues), EntityEntry>();
 
-            var keyValues = string.Join(
-                "|",
-                primaryKey.Properties.Select(p => entry.Property(p.Name).CurrentValue?.ToString() ?? "null"));
-            var compositeKey = (entityType.Name, keyValues);
-
-            if (seen.TryGetValue(compositeKey, out var existing))
+            foreach (var entry in entries)
             {
-                // Keep the one that is Unchanged or Modified; detach the Added duplicate
-                if (entry.State == EntityState.Added)
+                var entityType = entry.Metadata;
+                var primaryKey = entityType.FindPrimaryKey();
+                if (primaryKey is null)
                 {
-                    entry.State = EntityState.Detached;
+                    continue;
                 }
-                else if (existing.State == EntityState.Added)
+
+                var keyValues = string.Join(
+                    "|",
+                    primaryKey.Properties.Select(p => entry.Property(p.Name).CurrentValue?.ToString() ?? "null"));
+                var compositeKey = (entityType.Name, keyValues);
+
+                if (seen.TryGetValue(compositeKey, out var existing))
                 {
-                    existing.State = EntityState.Detached;
-                    seen[compositeKey] = entry;
+                    if (entry.State == EntityState.Added)
+                    {
+                        entry.State = EntityState.Detached;
+                    }
+                    else if (existing.State == EntityState.Added)
+                    {
+                        existing.State = EntityState.Detached;
+                        seen[compositeKey] = entry;
+                    }
+                    else
+                    {
+                        entry.State = EntityState.Detached;
+                    }
                 }
                 else
                 {
-                    // Both are non-Added — detach the newer one
-                    entry.State = EntityState.Detached;
+                    seen[compositeKey] = entry;
                 }
             }
-            else
-            {
-                seen[compositeKey] = entry;
-            }
+        }
+        finally
+        {
+            this.Context.ChangeTracker.AutoDetectChangesEnabled = autoDetect;
         }
     }
 
