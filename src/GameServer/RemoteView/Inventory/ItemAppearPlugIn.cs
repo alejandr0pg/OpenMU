@@ -5,6 +5,7 @@
 namespace MUnique.OpenMU.GameServer.RemoteView.Inventory;
 
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 using MUnique.OpenMU.DataModel.Entities;
 using MUnique.OpenMU.GameLogic.Views.Inventory;
 using MUnique.OpenMU.Network;
@@ -49,6 +50,8 @@ public class ItemAppearPlugIn : IItemAppearPlugIn
 
             var actualSize = ItemAddedToInventoryRef.GetRequiredSize(itemSize);
             span.Slice(0, actualSize).SetPacketSize();
+            this._player.Logger.LogWarning("[PickupDebug] ItemAppearPlugIn sending: slot={Slot}, actualSize={Size}, rawHex={Hex}",
+                newItem.ItemSlot, actualSize, Convert.ToHexString(span.Slice(0, actualSize)));
             return actualSize;
         }
 

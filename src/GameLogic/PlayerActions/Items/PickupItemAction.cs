@@ -4,6 +4,7 @@
 
 namespace MUnique.OpenMU.GameLogic.PlayerActions.Items;
 
+using Microsoft.Extensions.Logging;
 using MUnique.OpenMU.DataModel.Configuration.Items;
 using MUnique.OpenMU.GameLogic.Views;
 using MUnique.OpenMU.GameLogic.Views.Inventory;
@@ -22,6 +23,8 @@ public class PickupItemAction
     public async ValueTask PickupItemAsync(Player player, ushort dropId)
     {
         var droppedLocateable = player.CurrentMap?.GetDrop(dropId);
+        player.Logger.LogWarning("[PickupDebug] PickupItemAsync called: dropId={DropId} (0x{DropIdHex:X4}), mapName={Map}, GetDrop result={Result}, resultType={Type}",
+            dropId, dropId, player.CurrentMap?.Definition?.Name ?? "null", droppedLocateable != null ? "FOUND" : "NULL", droppedLocateable?.GetType().Name ?? "null");
 
         switch (droppedLocateable)
         {
@@ -65,10 +68,13 @@ public class PickupItemAction
     {
         if (!player.IsAlive)
         {
+            player.Logger.LogWarning("[PickupDebug] CanPickup FAILED: player not alive");
             return false;
         }
 
         var dist = (int)player.GetDistanceTo(droppedLocateable);
+        player.Logger.LogWarning("[PickupDebug] CanPickup: dist={Dist}, playerPos=({PX},{PY}), itemPos=({IX},{IY})",
+            dist, player.Position.X, player.Position.Y, droppedLocateable.Position.X, droppedLocateable.Position.Y);
         if (dist > 3)
         {
             return false;

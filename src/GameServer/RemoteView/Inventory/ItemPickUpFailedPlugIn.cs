@@ -5,6 +5,7 @@
 namespace MUnique.OpenMU.GameServer.RemoteView.Inventory;
 
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 using MUnique.OpenMU.GameLogic.Views.Inventory;
 using MUnique.OpenMU.Network.Packets.ServerToClient;
 using MUnique.OpenMU.PlugIns;
@@ -28,6 +29,8 @@ public class ItemPickUpFailedPlugIn : IItemPickUpFailedPlugIn
     /// <inheritdoc />
     public async ValueTask ItemPickUpFailedAsync(ItemPickFailReason reason)
     {
+        this._player.Logger.LogWarning("[PickupDebug] ItemPickUpFailedPlugIn sending: reason={Reason}, converted={Converted}",
+            reason, reason.Convert());
         await this._player.Connection.SendItemPickUpRequestFailedAsync(reason.Convert()).ConfigureAwait(false);
     }
 }

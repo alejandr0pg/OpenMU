@@ -5,6 +5,7 @@
 namespace MUnique.OpenMU.GameServer.MessageHandler.Items;
 
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 using MUnique.OpenMU.GameLogic;
 using MUnique.OpenMU.GameLogic.PlayerActions.Items;
 using MUnique.OpenMU.Network.Packets.ClientToServer;
@@ -32,6 +33,8 @@ internal class PickupItemHandlerPlugIn : IPacketHandlerPlugIn
     public async ValueTask HandlePacketAsync(Player player, Memory<byte> packet)
     {
         PickupItemRequest message = packet;
+        player.Logger.LogWarning("[PickupDebug] HandlePacket: ItemId={ItemId} (0x{ItemIdHex:X4}), packetLen={Len}, rawHex={Hex}",
+            message.ItemId, message.ItemId, packet.Length, Convert.ToHexString(packet.Span));
         await this._pickupAction.PickupItemAsync(player, message.ItemId).ConfigureAwait(false);
     }
 }

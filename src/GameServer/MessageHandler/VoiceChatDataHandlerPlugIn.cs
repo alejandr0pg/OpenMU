@@ -19,11 +19,13 @@ internal class VoiceChatDataHandlerPlugIn : IPacketHandlerPlugIn
 {
     private const byte VoicePacketCode = 0xD5;
     private const byte VoiceDataSubCode = 0x01;
+    private const byte GmBroadcastSubCode = 0x02;
     private const int MaxVoicePayload = 4000;
     private const int MinPacketLength = 6; // C2(1) + LenHi(1) + LenLo(1) + Code(1) + SubCode(1) + Data(1+)
     private const int VoiceDataOffset = 5; // data starts after C2 header + code + subcode
 
     private readonly VoiceChatRelayAction _relayAction = new();
+    private readonly GmVoiceBroadcastAction _gmBroadcastAction = new();
 
     /// <inheritdoc/>
     public bool IsEncryptionExpected => false;
@@ -40,27 +42,22 @@ internal class VoiceChatDataHandlerPlugIn : IPacketHandlerPlugIn
         }
 
         var span = packet.Span;
-        if (span[4] != VoiceDataSubCode)
-        {
-            return;
-        }
-
+        var subCode = span[4];
         var voiceDataLength = packet.Length - VoiceDataOffset;
         if (voiceDataLength <= 0 || voiceDataLength > MaxVoicePayload)
         {
             return;
         }
 
-        // Rate limit: check last voice packet time
-        var now = DateTime.UtcNow;
-        if ((now - player.LastVoicePacketTime).TotalMilliseconds < 15)
-        {
-            return;
-        }
-
-        player.LastVoicePacketTime = now;
-
         var opusData = packet.Slice(VoiceDataOffset, voiceDataLength);
-        await this._relayAction.RelayAsync(player, opusData).ConfigureAwait(false);
+
+        if (subCode == VoiceDataSubCode)
+        {
+            await this._relayAction.RelayAsync(player, opusData).ConfigureAwait(false);
+        }
+        else if (subCode == GmBroadcastSubCode)
+        {
+            await this._gmBroadcastAction.BroadcastAsync(player, opusData).ConfigureAwait(false);
+        }
     }
 }

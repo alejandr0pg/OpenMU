@@ -5,6 +5,7 @@
 namespace MUnique.OpenMU.GameServer.RemoteView.Inventory;
 
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 using MUnique.OpenMU.GameLogic.Views.Inventory;
 using MUnique.OpenMU.Network.Packets.ServerToClient;
 using MUnique.OpenMU.PlugIns;
@@ -28,6 +29,7 @@ public class UpdateMoneyPlugIn : IUpdateMoneyPlugIn
     /// <inheritdoc/>
     public async ValueTask UpdateMoneyAsync()
     {
+        this._player.Logger.LogWarning("[PickupDebug] UpdateMoneyPlugIn sending: money={Money}", this._player.Money);
         await this._player.Connection.SendInventoryMoneyUpdateAsync((uint)this._player.Money).ConfigureAwait(false);
     }
 }
