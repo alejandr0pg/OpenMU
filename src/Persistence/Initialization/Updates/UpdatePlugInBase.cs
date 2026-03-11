@@ -53,7 +53,7 @@ public abstract class UpdatePlugInBase : IConfigurationUpdatePlugIn
 
     protected bool AddStatIfNotExists(IContext context, GameConfiguration gameConfiguration, AttributeDefinition attribute)
     {
-        if (gameConfiguration.Attributes.Contains(attribute))
+        if (gameConfiguration.Attributes.Any(a => a.Id == attribute.Id))
         {
             return false;
         }
