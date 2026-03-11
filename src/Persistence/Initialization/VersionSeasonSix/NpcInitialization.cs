@@ -557,7 +557,6 @@ internal partial class NpcInitialization : Version095d.NpcInitialization
             var def = this.Context.CreateNew<MonsterDefinition>();
             def.Number = 451;
             def.Designation = "Cherry Blossom Tree";
-            def.NpcWindow = NpcWindow.CherryBlossomBranchesAssembly;
             def.ObjectKind = NpcObjectKind.PassiveNpc;
             this.GameConfiguration.Monsters.Add(def);
             def.SetGuid(def.Number);
