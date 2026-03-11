@@ -101,6 +101,26 @@ internal partial class NpcInitialization : Version095d.NpcInitialization
 
         {
             var def = this.Context.CreateNew<MonsterDefinition>();
+            def.Number = 248;
+            def.Designation = "Wandering Merchant Martin";
+            def.NpcWindow = NpcWindow.Merchant;
+            def.ObjectKind = NpcObjectKind.PassiveNpc;
+            this.GameConfiguration.Monsters.Add(def);
+            def.SetGuid(def.Number);
+        }
+
+        {
+            var def = this.Context.CreateNew<MonsterDefinition>();
+            def.Number = 250;
+            def.Designation = "Wandering Merchant Harold";
+            def.NpcWindow = NpcWindow.Merchant;
+            def.ObjectKind = NpcObjectKind.PassiveNpc;
+            this.GameConfiguration.Monsters.Add(def);
+            def.SetGuid(def.Number);
+        }
+
+        {
+            var def = this.Context.CreateNew<MonsterDefinition>();
             def.Number = 256;
             def.Designation = "Lahap";
             def.NpcWindow = NpcWindow.Lahap;
@@ -974,7 +994,7 @@ internal partial class NpcInitialization : Version095d.NpcInitialization
             var def = this.Context.CreateNew<MonsterDefinition>();
             def.Number = 568;
             def.Designation = "Wandering Merchant Zyro";
-            def.NpcWindow = NpcWindow.NpcDialog;
+            def.NpcWindow = NpcWindow.Merchant;
             def.ObjectKind = NpcObjectKind.PassiveNpc;
             def.SetGuid(def.Number);
             this.GameConfiguration.Monsters.Add(def);
