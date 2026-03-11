@@ -531,6 +531,6 @@ internal sealed class Program : IDisposable
         var plugInManager = new PlugInManager(null, loggerFactory, serviceContainer, referenceHandler);
         plugInManager.DiscoverAndRegisterPlugInsOf<IDataInitializationPlugIn>();
         var initialization = plugInManager.GetStrategy<IDataInitializationPlugIn>(version) ?? throw new Exception("Data initialization plugin not found");
-        await initialization.CreateInitialDataAsync(3, true).ConfigureAwait(false);
+        await initialization.CreateInitialDataAsync(1, true).ConfigureAwait(false);
     }
 }
