@@ -109,6 +109,12 @@ public sealed class Monster : AttackableNpcBase, IAttackable, IAttacker, ISuppor
 
         await target.AttackByAsync(this, null, false).ConfigureAwait(false);
 
+        // Stop if monster died during the attack (e.g. reflect damage)
+        if (!this.IsAlive)
+        {
+            return;
+        }
+
         await this.ForEachWorldObserverAsync<IShowAnimationPlugIn>(p => p.ShowMonsterAttackAnimationAsync(this, target, this.GetDirectionTo(target)), true).ConfigureAwait(false);
         if (this.Definition.AttackSkill is { } attackSkill)
         {

@@ -257,6 +257,13 @@ public class BasicMonsterIntelligence : INpcIntelligence, IDisposable
         // Target in Attack Range?
         if (target.IsInRange(this.Monster.Position, this.Monster.Definition.AttackRange) && !this.Monster.IsAtSafezone())
         {
+            // Re-check alive right before attacking to close the race window
+            if (!this.Monster.IsAlive)
+            {
+                this.CurrentTarget = null;
+                return;
+            }
+
             await this.Monster.AttackAsync(target).ConfigureAwait(false);  // yes, attack
             return;
         }
