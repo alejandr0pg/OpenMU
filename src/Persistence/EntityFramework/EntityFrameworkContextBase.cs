@@ -142,6 +142,12 @@ internal class EntityFrameworkContextBase : IContext
     {
         using var l = this._lock.Lock();
         var instance = typeof(CachingEntityFrameworkContext).Assembly.CreateNew<T>(args);
+
+        if (this.TryGetTrackedEntity(instance, out var tracked) && tracked is T typedTracked)
+        {
+            return typedTracked;
+        }
+
         this.Context.Add(instance);
         return instance;
     }
@@ -151,8 +157,63 @@ internal class EntityFrameworkContextBase : IContext
     {
         using var l = this._lock.Lock();
         var instance = typeof(CachingEntityFrameworkContext).Assembly.CreateNew(type, args);
+
+        if (this.TryGetTrackedEntity(instance, out var tracked))
+        {
+            return tracked;
+        }
+
         this.Context.Add(instance);
         return instance;
+    }
+
+    private bool TryGetTrackedEntity(object instance, out object tracked)
+    {
+        tracked = instance;
+        var entityType = this.Context.Model.FindEntityType(instance.GetType());
+        if (entityType is null)
+        {
+            return false;
+        }
+
+        var primaryKey = entityType.FindPrimaryKey();
+        if (primaryKey is null)
+        {
+            return false;
+        }
+
+        var keyValues = primaryKey.Properties
+            .Select(p => p.PropertyInfo?.GetValue(instance) ?? p.FieldInfo?.GetValue(instance))
+            .ToArray();
+
+        // Check if all key values are default (new entity without explicit ID)
+        if (keyValues.All(v => v is null || v.Equals(Activator.CreateInstance(v.GetType()))))
+        {
+            return false;
+        }
+
+        var existing = this.Context.ChangeTracker.Entries()
+            .FirstOrDefault(e =>
+            {
+                if (e.Entity.GetType() != instance.GetType())
+                {
+                    return false;
+                }
+
+                var entryKeyValues = primaryKey.Properties
+                    .Select(p => e.Property(p.Name).CurrentValue)
+                    .ToArray();
+
+                return keyValues.SequenceEqual(entryKeyValues);
+            });
+
+        if (existing is not null)
+        {
+            tracked = existing.Entity;
+            return true;
+        }
+
+        return false;
     }
 
     /// <inheritdoc/>
