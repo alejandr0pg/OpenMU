@@ -102,7 +102,12 @@ public class TalkNpcAction
                 await player.InvokeViewPlugInAsync<IShowVaultPlugIn>(p => p.ShowVaultAsync()).ConfigureAwait(false);
                 break;
             case NpcWindow.GuildMaster:
-                if (await this.IsPlayedAllowedToCreateGuildAsync(player).ConfigureAwait(false))
+                if (player.GuildStatus != null)
+                {
+                    // Player is already in a guild — open guild management dialog.
+                    await player.InvokeViewPlugInAsync<IShowGuildMasterDialogPlugIn>(p => p.ShowGuildMasterDialogAsync()).ConfigureAwait(false);
+                }
+                else if (await this.IsPlayedAllowedToCreateGuildAsync(player).ConfigureAwait(false))
                 {
                     await player.InvokeViewPlugInAsync<IShowGuildMasterDialogPlugIn>(p => p.ShowGuildMasterDialogAsync()).ConfigureAwait(false);
                 }
