@@ -11,6 +11,8 @@ using System.Collections;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.Logging;
 using MUnique.OpenMU.DataModel.Composition;
@@ -86,9 +88,6 @@ internal class EntityFrameworkContextBase : IContext
 
         try
         {
-            // Run DetectChanges manually with conflict handling.
-            // If it fails due to duplicate tracked entities, disable it and save
-            // with only the changes that EF already knows about.
             var autoDetect = this.Context.ChangeTracker.AutoDetectChangesEnabled;
             try
             {
@@ -96,14 +95,23 @@ internal class EntityFrameworkContextBase : IContext
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("cannot be tracked"))
             {
-                this._logger.LogWarning(ex, "Identity conflict during DetectChanges — proceeding without it.");
+                this._logger.LogWarning(ex, "Identity conflict during DetectChanges — cleaning up orphaned entries.");
+                this.CleanUpDetachedEntries();
             }
 
-            // Save with auto-detect disabled to prevent a second DetectChanges call.
             this.Context.ChangeTracker.AutoDetectChangesEnabled = false;
             try
             {
-                await this.Context.SaveChangesAsync(acceptChanges, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await this.Context.SaveChangesAsync(acceptChanges, cancellationToken).ConfigureAwait(false);
+                }
+                catch (ArgumentOutOfRangeException ex) when (ex.Message.Contains("Detached"))
+                {
+                    this._logger.LogWarning(ex, "Detached entries found during save — cleaning up and retrying.");
+                    this.CleanUpDetachedEntries();
+                    await this.Context.SaveChangesAsync(acceptChanges, cancellationToken).ConfigureAwait(false);
+                }
             }
             finally
             {
@@ -379,6 +387,26 @@ internal class EntityFrameworkContextBase : IContext
 
         throw new RepositoryNotFoundException(type);
     }
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+    private void CleanUpDetachedEntries()
+    {
+        var stateManager = this.Context.GetService<IStateManager>();
+        var detachedEntries = stateManager.Entries
+            .Where(e => e.EntityState == EntityState.Detached)
+            .ToList();
+
+        foreach (var entry in detachedEntries)
+        {
+            stateManager.StopTracking(entry, EntityState.Detached);
+        }
+
+        if (detachedEntries.Count > 0)
+        {
+            this._logger.LogInformation("Removed {Count} orphaned Detached entries from StateManager.", detachedEntries.Count);
+        }
+    }
+#pragma warning restore EF1001 // Internal EF Core API usage.
 
     private void ForEachAggregate(object obj, Action<object> action)
     {
