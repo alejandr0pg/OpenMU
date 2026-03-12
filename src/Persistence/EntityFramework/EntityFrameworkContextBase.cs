@@ -164,7 +164,7 @@ internal class EntityFrameworkContextBase : IContext
             return typedTracked;
         }
 
-        this.Context.Add(instance);
+        this.Context.Entry(instance).State = EntityState.Added;
         return instance;
     }
 
@@ -179,7 +179,7 @@ internal class EntityFrameworkContextBase : IContext
             return tracked;
         }
 
-        this.Context.Add(instance);
+        this.Context.Entry(instance).State = EntityState.Added;
         return instance;
     }
 
@@ -208,20 +208,30 @@ internal class EntityFrameworkContextBase : IContext
             return false;
         }
 
-        var existing = this.Context.ChangeTracker.Entries()
-            .FirstOrDefault(e =>
-            {
-                if (e.Entity.GetType() != instance.GetType())
+        var autoDetect = this.Context.ChangeTracker.AutoDetectChangesEnabled;
+        this.Context.ChangeTracker.AutoDetectChangesEnabled = false;
+        EntityEntry? existing;
+        try
+        {
+            existing = this.Context.ChangeTracker.Entries()
+                .FirstOrDefault(e =>
                 {
-                    return false;
-                }
+                    if (e.Entity.GetType() != instance.GetType())
+                    {
+                        return false;
+                    }
 
-                var entryKeyValues = primaryKey.Properties
-                    .Select(p => e.Property(p.Name).CurrentValue)
-                    .ToArray();
+                    var entryKeyValues = primaryKey.Properties
+                        .Select(p => e.Property(p.Name).CurrentValue)
+                        .ToArray();
 
-                return keyValues.SequenceEqual(entryKeyValues);
-            });
+                    return keyValues.SequenceEqual(entryKeyValues);
+                });
+        }
+        finally
+        {
+            this.Context.ChangeTracker.AutoDetectChangesEnabled = autoDetect;
+        }
 
         if (existing is not null)
         {
