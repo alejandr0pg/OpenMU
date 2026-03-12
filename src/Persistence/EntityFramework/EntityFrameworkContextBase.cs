@@ -86,24 +86,28 @@ internal class EntityFrameworkContextBase : IContext
 
         try
         {
+            // Run DetectChanges manually with conflict handling.
+            // If it fails due to duplicate tracked entities, disable it and save
+            // with only the changes that EF already knows about.
+            var autoDetect = this.Context.ChangeTracker.AutoDetectChangesEnabled;
+            try
+            {
+                this.Context.ChangeTracker.DetectChanges();
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("cannot be tracked"))
+            {
+                this._logger.LogWarning(ex, "Identity conflict during DetectChanges — proceeding without it.");
+            }
+
+            // Save with auto-detect disabled to prevent a second DetectChanges call.
+            this.Context.ChangeTracker.AutoDetectChangesEnabled = false;
             try
             {
                 await this.Context.SaveChangesAsync(acceptChanges, cancellationToken).ConfigureAwait(false);
             }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("cannot be tracked because another instance"))
+            finally
             {
-                // NavigationFixer/DetectChanges found duplicate tracked entities.
-                // Retry with auto-detect disabled — entities are already tracked via CreateNew/Add.
-                this._logger.LogWarning(ex, "Identity conflict during SaveChanges — retrying with auto-detect disabled.");
-                this.Context.ChangeTracker.AutoDetectChangesEnabled = false;
-                try
-                {
-                    await this.Context.SaveChangesAsync(acceptChanges, cancellationToken).ConfigureAwait(false);
-                }
-                finally
-                {
-                    this.Context.ChangeTracker.AutoDetectChangesEnabled = true;
-                }
+                this.Context.ChangeTracker.AutoDetectChangesEnabled = autoDetect;
             }
 
             if (args is not null)
