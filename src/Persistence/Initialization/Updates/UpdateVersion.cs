@@ -349,4 +349,9 @@ public enum UpdateVersion
     /// The version of the <see cref="FixFireBlastSkillTypePlugIn"/>.
     /// </summary>
     FixFireBlastSkillType = 68,
+
+    /// <summary>
+    /// The version of the <see cref="FixSkillDefinitionsPlugIn"/>.
+    /// </summary>
+    FixSkillDefinitions = 69,
 }
