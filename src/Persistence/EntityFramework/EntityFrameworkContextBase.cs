@@ -86,18 +86,19 @@ internal class EntityFrameworkContextBase : IContext
 
         try
         {
-            this.RemoveDuplicateTrackedEntities();
+            // Disable auto-detect-changes to prevent NavigationFixer conflicts
+            // when update plugins add entities that reference already-tracked entities.
+            var autoDetect = this.Context.ChangeTracker.AutoDetectChangesEnabled;
+            this.Context.ChangeTracker.AutoDetectChangesEnabled = false;
 
             try
             {
-                await this.Context.SaveChangesAsync(acceptChanges, cancellationToken).ConfigureAwait(false);
-            }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("cannot be tracked because another instance"))
-            {
-                // A duplicate slipped through during SaveChangesAsync's internal DetectChanges.
-                // Clean up and retry once.
                 this.RemoveDuplicateTrackedEntities();
                 await this.Context.SaveChangesAsync(acceptChanges, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                this.Context.ChangeTracker.AutoDetectChangesEnabled = autoDetect;
             }
 
             if (args is not null)
