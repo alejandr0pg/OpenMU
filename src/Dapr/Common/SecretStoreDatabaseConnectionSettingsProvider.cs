@@ -82,7 +82,7 @@ public class SecretStoreDatabaseConnectionSettingsProvider : IDatabaseConnection
                             }
                         }
 
-                        Console.WriteLine("secrects retrieved :)");
+                        Console.WriteLine("secrets retrieved :)");
 
                         this._isInitialized = true;
                     }
