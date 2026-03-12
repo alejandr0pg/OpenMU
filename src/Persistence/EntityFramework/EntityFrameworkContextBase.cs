@@ -86,19 +86,24 @@ internal class EntityFrameworkContextBase : IContext
 
         try
         {
-            // Disable auto-detect-changes to prevent NavigationFixer conflicts
-            // when update plugins add entities that reference already-tracked entities.
-            var autoDetect = this.Context.ChangeTracker.AutoDetectChangesEnabled;
-            this.Context.ChangeTracker.AutoDetectChangesEnabled = false;
-
             try
             {
-                this.RemoveDuplicateTrackedEntities();
                 await this.Context.SaveChangesAsync(acceptChanges, cancellationToken).ConfigureAwait(false);
             }
-            finally
+            catch (InvalidOperationException ex) when (ex.Message.Contains("cannot be tracked because another instance"))
             {
-                this.Context.ChangeTracker.AutoDetectChangesEnabled = autoDetect;
+                // NavigationFixer/DetectChanges found duplicate tracked entities.
+                // Retry with auto-detect disabled — entities are already tracked via CreateNew/Add.
+                this._logger.LogWarning(ex, "Identity conflict during SaveChanges — retrying with auto-detect disabled.");
+                this.Context.ChangeTracker.AutoDetectChangesEnabled = false;
+                try
+                {
+                    await this.Context.SaveChangesAsync(acceptChanges, cancellationToken).ConfigureAwait(false);
+                }
+                finally
+                {
+                    this.Context.ChangeTracker.AutoDetectChangesEnabled = true;
+                }
             }
 
             if (args is not null)
@@ -120,59 +125,6 @@ internal class EntityFrameworkContextBase : IContext
         }
     }
 
-    private void RemoveDuplicateTrackedEntities()
-    {
-        // Disable auto-detect-changes to avoid NavigationFixer conflicts
-        // when enumerating tracked entries.
-        var autoDetect = this.Context.ChangeTracker.AutoDetectChangesEnabled;
-        this.Context.ChangeTracker.AutoDetectChangesEnabled = false;
-
-        try
-        {
-            var entries = this.Context.ChangeTracker.Entries().ToList();
-            var seen = new Dictionary<(string TypeName, string KeyValues), EntityEntry>();
-
-            foreach (var entry in entries)
-            {
-                var entityType = entry.Metadata;
-                var primaryKey = entityType.FindPrimaryKey();
-                if (primaryKey is null)
-                {
-                    continue;
-                }
-
-                var keyValues = string.Join(
-                    "|",
-                    primaryKey.Properties.Select(p => entry.Property(p.Name).CurrentValue?.ToString() ?? "null"));
-                var compositeKey = (entityType.Name, keyValues);
-
-                if (seen.TryGetValue(compositeKey, out var existing))
-                {
-                    if (entry.State == EntityState.Added)
-                    {
-                        entry.State = EntityState.Detached;
-                    }
-                    else if (existing.State == EntityState.Added)
-                    {
-                        existing.State = EntityState.Detached;
-                        seen[compositeKey] = entry;
-                    }
-                    else
-                    {
-                        entry.State = EntityState.Detached;
-                    }
-                }
-                else
-                {
-                    seen[compositeKey] = entry;
-                }
-            }
-        }
-        finally
-        {
-            this.Context.ChangeTracker.AutoDetectChangesEnabled = autoDetect;
-        }
-    }
 
     /// <inheritdoc />
     public IDisposable SuspendChangeNotifications()
