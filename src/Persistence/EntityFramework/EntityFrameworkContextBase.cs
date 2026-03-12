@@ -106,10 +106,11 @@ internal class EntityFrameworkContextBase : IContext
                 {
                     await this.Context.SaveChangesAsync(acceptChanges, cancellationToken).ConfigureAwait(false);
                 }
-                catch (DbUpdateException ex)
+                catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate key") == true)
                 {
-                    this._logger.LogError(ex.InnerException ?? ex, "Database save failed: {Message}", ex.InnerException?.Message ?? ex.Message);
-                    throw;
+                    this._logger.LogWarning("Duplicate key during save — resolving conflicts and retrying.");
+                    await this.ResolveAddedDuplicatesAsync(cancellationToken).ConfigureAwait(false);
+                    await this.Context.SaveChangesAsync(acceptChanges, cancellationToken).ConfigureAwait(false);
                 }
             }
             finally
@@ -395,6 +396,67 @@ internal class EntityFrameworkContextBase : IContext
         }
 
         throw new RepositoryNotFoundException(type);
+    }
+
+    private async Task ResolveAddedDuplicatesAsync(CancellationToken cancellationToken)
+    {
+        var conn = this.Context.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open)
+        {
+            await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        var resolved = 0;
+        foreach (var entry in this.Context.ChangeTracker.Entries().ToList())
+        {
+            if (entry.State != EntityState.Added)
+            {
+                continue;
+            }
+
+            var pk = entry.Metadata.FindPrimaryKey();
+            if (pk is null)
+            {
+                continue;
+            }
+
+            var keyValues = pk.Properties
+                .Select(p => entry.Property(p.Name).CurrentValue)
+                .ToArray();
+
+            if (keyValues.Any(v => v is null || v.Equals(Activator.CreateInstance(v.GetType()!))))
+            {
+                continue;
+            }
+
+            var tableName = entry.Metadata.GetTableName();
+            var schema = entry.Metadata.GetSchema() ?? "config";
+
+            using var cmd = conn.CreateCommand();
+            var conditions = new List<string>();
+            for (var i = 0; i < pk.Properties.Count; i++)
+            {
+                conditions.Add($"\"{pk.Properties[i].Name}\" = @p{i}");
+                var param = cmd.CreateParameter();
+                param.ParameterName = $"p{i}";
+                param.Value = keyValues[i]!;
+                cmd.Parameters.Add(param);
+            }
+
+            cmd.CommandText = $"SELECT COUNT(*) FROM {schema}.\"{tableName}\" WHERE {string.Join(" AND ", conditions)}";
+
+            var count = (long)(await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false))!;
+            if (count > 0)
+            {
+                entry.State = EntityState.Unchanged;
+                resolved++;
+            }
+        }
+
+        if (resolved > 0)
+        {
+            this._logger.LogInformation("Resolved {Count} duplicate Added entities — changed to Unchanged.", resolved);
+        }
     }
 
     private void AddEntitySafely(object instance)
