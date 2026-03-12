@@ -11,6 +11,8 @@ using System.Collections;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.Logging;
 using MUnique.OpenMU.DataModel.Composition;
@@ -87,16 +89,28 @@ internal class EntityFrameworkContextBase : IContext
         try
         {
             var autoDetect = this.Context.ChangeTracker.AutoDetectChangesEnabled;
+            try
+            {
+                this.Context.ChangeTracker.DetectChanges();
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("cannot be tracked"))
+            {
+                this._logger.LogWarning(ex, "Identity conflict during DetectChanges — removing orphaned entries.");
+                this.RemoveOrphanedEntries();
+            }
+
             this.Context.ChangeTracker.AutoDetectChangesEnabled = false;
             try
             {
-                // Manual property-level change detection instead of DetectChanges().
-                // DetectChanges() traverses navigation properties and can cause
-                // identity conflicts when the graph has duplicate entity references,
-                // leaving entries in a corrupted Detached state that crashes SaveChanges.
-                this.DetectPropertyChanges();
-
-                await this.Context.SaveChangesAsync(acceptChanges, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await this.Context.SaveChangesAsync(acceptChanges, cancellationToken).ConfigureAwait(false);
+                }
+                catch (DbUpdateException ex)
+                {
+                    this._logger.LogError(ex.InnerException ?? ex, "Database save failed: {Message}", ex.InnerException?.Message ?? ex.Message);
+                    throw;
+                }
             }
             finally
             {
@@ -164,7 +178,7 @@ internal class EntityFrameworkContextBase : IContext
             return typedTracked;
         }
 
-        this.Context.Entry(instance).State = EntityState.Added;
+        this.AddEntitySafely(instance);
         return instance;
     }
 
@@ -179,7 +193,7 @@ internal class EntityFrameworkContextBase : IContext
             return tracked;
         }
 
-        this.Context.Entry(instance).State = EntityState.Added;
+        this.AddEntitySafely(instance);
         return instance;
     }
 
@@ -383,33 +397,42 @@ internal class EntityFrameworkContextBase : IContext
         throw new RepositoryNotFoundException(type);
     }
 
-    /// <summary>
-    /// Detects property changes on tracked entities without calling DetectChanges(),
-    /// which traverses navigation properties and can cause identity conflicts.
-    /// </summary>
-    private void DetectPropertyChanges()
+    private void AddEntitySafely(object instance)
     {
-        foreach (var entry in this.Context.ChangeTracker.Entries().ToList())
+        try
         {
-            if (entry.State != EntityState.Unchanged)
+            this.Context.Add(instance);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("cannot be tracked"))
+        {
+            this._logger.LogWarning(ex, "Identity conflict during Add — tracking single entity.");
+            var entry = this.Context.Entry(instance);
+            if (entry.State == EntityState.Detached)
             {
-                continue;
-            }
-
-            foreach (var prop in entry.Properties)
-            {
-                if (prop.Metadata.IsPrimaryKey())
-                {
-                    continue;
-                }
-
-                if (!Equals(prop.CurrentValue, prop.OriginalValue))
-                {
-                    prop.IsModified = true;
-                }
+                entry.State = EntityState.Added;
             }
         }
     }
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+    private void RemoveOrphanedEntries()
+    {
+        var stateManager = this.Context.GetService<IStateManager>();
+        var orphaned = stateManager.Entries
+            .Where(e => e.EntityState == EntityState.Detached)
+            .ToList();
+
+        foreach (var entry in orphaned)
+        {
+            stateManager.StopTracking(entry, EntityState.Detached);
+        }
+
+        if (orphaned.Count > 0)
+        {
+            this._logger.LogInformation("Removed {Count} orphaned entries from StateManager.", orphaned.Count);
+        }
+    }
+#pragma warning restore EF1001 // Internal EF Core API usage.
 
     private void ForEachAggregate(object obj, Action<object> action)
     {
