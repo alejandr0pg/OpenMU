@@ -190,6 +190,11 @@ public class Character
     public CharacterPose Pose { get; set; }
 
     /// <summary>
+    /// Gets or sets the gens type (0=None, 1=Duprian, 2=Vanert).
+    /// </summary>
+    public byte GensType { get; set; }
+
+    /// <summary>
     /// Gets or sets the used fruit points.
     /// </summary>
     public int UsedFruitPoints { get; set; }
