@@ -34,7 +34,7 @@ public class GuildMasterAnswerAction
     /// <param name="answer">The answer.</param>
     public async ValueTask ProcessAnswerAsync(Player player, Answer answer)
     {
-        if (player.PlayerState.CurrentState == PlayerState.EnteredWorld && answer == Answer.ShowDialog)
+        if (player.PlayerState.CurrentState == PlayerState.NpcDialogOpened && answer == Answer.ShowDialog)
         {
             await player.InvokeViewPlugInAsync<IShowGuildCreationDialogPlugIn>(p => p.ShowGuildCreationDialogAsync()).ConfigureAwait(false);
         }
