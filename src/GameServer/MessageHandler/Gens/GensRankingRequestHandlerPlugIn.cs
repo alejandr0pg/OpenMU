@@ -18,13 +18,21 @@ using MUnique.OpenMU.PlugIns;
 [Display(Name = "Gens Ranking Request Handler", Description = "Handles the gens ranking request packet.")]
 [Guid("E5F6A7B8-C9D0-4E5F-1A2B-3C4D5E6F7A8B")]
 [BelongsToGroup(GensGroupHandlerPlugIn.GroupKey)]
-public class GensRankingRequestHandlerPlugIn : ISubPacketHandlerPlugIn
+public class GensRankingRequestHandlerPlugIn : ISubPacketHandlerPlugIn,
+    ISupportCustomConfiguration<GensRewardConfiguration>,
+    ISupportDefaultCustomConfiguration
 {
+    /// <inheritdoc/>
+    public GensRewardConfiguration? Configuration { get; set; }
+
     /// <inheritdoc/>
     public bool IsEncryptionExpected => false;
 
     /// <inheritdoc/>
     public byte Key => 0x0B;
+
+    /// <inheritdoc/>
+    public object CreateDefaultConfig() => new GensRewardConfiguration();
 
     /// <inheritdoc/>
     public async ValueTask HandlePacketAsync(Player player, Memory<byte> packet)
@@ -36,7 +44,12 @@ public class GensRankingRequestHandlerPlugIn : ISubPacketHandlerPlugIn
             return;
         }
 
-        var gensType = player.SelectedCharacter.GensType;
+        this.Configuration ??= new GensRewardConfiguration();
+
+        var character = player.SelectedCharacter;
+        var gensType = character.GensType;
+        var contribution = character.GensContribution;
+        var rank = this.CalculateRank(contribution);
         var connection = remotePlayer.Connection;
 
         int Write()
@@ -48,11 +61,27 @@ public class GensRankingRequestHandlerPlugIn : ISubPacketHandlerPlugIn
             span[2] = 0xF8;
             span[3] = 0x0B;
             span[4] = gensType;
-            BinaryPrimitives.WriteInt32BigEndian(span[5..], 0); // contribution
-            BinaryPrimitives.WriteInt32BigEndian(span[9..], 0); // rank
+            BinaryPrimitives.WriteInt32BigEndian(span[5..], contribution);
+            BinaryPrimitives.WriteInt32BigEndian(span[9..], rank);
             return size;
         }
 
         await connection.SendAsync(Write).ConfigureAwait(false);
+    }
+
+    private int CalculateRank(int contribution)
+    {
+        int bestRank = 0;
+        int bestMin = -1;
+        foreach (var tier in this.Configuration!.RewardTiers)
+        {
+            if (contribution >= tier.MinimumContribution && tier.MinimumContribution > bestMin)
+            {
+                bestRank = tier.Rank;
+                bestMin = tier.MinimumContribution;
+            }
+        }
+
+        return bestRank;
     }
 }

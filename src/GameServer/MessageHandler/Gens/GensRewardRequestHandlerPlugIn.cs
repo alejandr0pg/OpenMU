@@ -17,8 +17,13 @@ using MUnique.OpenMU.PlugIns;
 [Display(Name = "Gens Reward Request Handler", Description = "Handles the gens reward request packet.")]
 [Guid("D4E5F6A7-B8C9-4D5E-0F1A-2B3C4D5E6F7A")]
 [BelongsToGroup(GensGroupHandlerPlugIn.GroupKey)]
-public class GensRewardRequestHandlerPlugIn : ISubPacketHandlerPlugIn
+public class GensRewardRequestHandlerPlugIn : ISubPacketHandlerPlugIn,
+    ISupportCustomConfiguration<GensRewardConfiguration>,
+    ISupportDefaultCustomConfiguration
 {
+    /// <inheritdoc/>
+    public GensRewardConfiguration? Configuration { get; set; }
+
     /// <inheritdoc/>
     public bool IsEncryptionExpected => false;
 
@@ -26,15 +31,63 @@ public class GensRewardRequestHandlerPlugIn : ISubPacketHandlerPlugIn
     public byte Key => 0x09;
 
     /// <inheritdoc/>
+    public object CreateDefaultConfig() => new GensRewardConfiguration();
+
+    /// <inheritdoc/>
     public async ValueTask HandlePacketAsync(Player player, Memory<byte> packet)
     {
-        // No contribution system yet — always respond with failure (0x01)
-        if (player is not RemotePlayer remotePlayer || remotePlayer.Connection is null)
+        if (player.SelectedCharacter is null ||
+            player is not RemotePlayer remotePlayer ||
+            remotePlayer.Connection is null)
         {
             return;
         }
 
+        this.Configuration ??= new GensRewardConfiguration();
+        var character = player.SelectedCharacter;
+
+        if (character.GensType == 0 ||
+            character.GensContribution < this.Configuration.MinimumContribution)
+        {
+            await SendRewardResponseAsync(remotePlayer, 0x01).ConfigureAwait(false);
+            return;
+        }
+
+        var tier = this.FindRewardTier(character.GensContribution);
+        if (tier is null)
+        {
+            await SendRewardResponseAsync(remotePlayer, 0x01).ConfigureAwait(false);
+            return;
+        }
+
+        player.TryAddMoney(tier.ZenReward);
+        character.GensContribution = 0;
+
+        await SendRewardResponseAsync(remotePlayer, 0x00).ConfigureAwait(false);
+    }
+
+    private GensRewardTier? FindRewardTier(int contribution)
+    {
+        GensRewardTier? best = null;
+        foreach (var tier in this.Configuration!.RewardTiers)
+        {
+            if (contribution >= tier.MinimumContribution &&
+                (best is null || tier.MinimumContribution > best.MinimumContribution))
+            {
+                best = tier;
+            }
+        }
+
+        return best;
+    }
+
+    private static async ValueTask SendRewardResponseAsync(RemotePlayer remotePlayer, byte result)
+    {
         var connection = remotePlayer.Connection;
+        if (connection is null)
+        {
+            return;
+        }
 
         int Write()
         {
@@ -44,7 +97,7 @@ public class GensRewardRequestHandlerPlugIn : ISubPacketHandlerPlugIn
             span[1] = size;
             span[2] = 0xF8;
             span[3] = 0x09;
-            span[4] = 0x01; // failure — no reward available
+            span[4] = result;
             return size;
         }
 

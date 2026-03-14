@@ -195,6 +195,11 @@ public class Character
     public byte GensType { get; set; }
 
     /// <summary>
+    /// Gets or sets the gens contribution points earned by killing opposing faction members.
+    /// </summary>
+    public int GensContribution { get; set; }
+
+    /// <summary>
     /// Gets or sets the used fruit points.
     /// </summary>
     public int UsedFruitPoints { get; set; }

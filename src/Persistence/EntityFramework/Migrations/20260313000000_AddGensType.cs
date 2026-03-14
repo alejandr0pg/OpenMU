@@ -17,11 +17,24 @@ namespace MUnique.OpenMU.Persistence.EntityFramework.Migrations
                 type: "smallint",
                 nullable: false,
                 defaultValue: (byte)0);
+
+            migrationBuilder.AddColumn<int>(
+                name: "GensContribution",
+                schema: "accountdata",
+                table: "Character",
+                type: "integer",
+                nullable: false,
+                defaultValue: 0);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropColumn(
+                name: "GensContribution",
+                schema: "accountdata",
+                table: "Character");
+
             migrationBuilder.DropColumn(
                 name: "GensType",
                 schema: "accountdata",
