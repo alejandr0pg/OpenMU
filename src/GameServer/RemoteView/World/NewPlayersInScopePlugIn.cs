@@ -56,6 +56,8 @@ public class NewPlayersInScopePlugIn : INewPlayersInScopePlugIn
         {
             await this.Player.InvokeViewPlugInAsync<IAssignPlayersToGuildPlugIn>(p => p.AssignPlayersToGuildAsync(guildPlayers, true)).ConfigureAwait(false);
         }
+
+        await this.SendGensInfoAsync(newPlayers).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -238,6 +240,52 @@ public class NewPlayersInScopePlugIn : INewPlayersInScopePlugIn
             var finalSize = packet.FinalSize;
             span.Slice(0, finalSize).SetPacketSize();
             return finalSize;
+        }
+
+        await connection.SendAsync(Write).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Sends gens faction info (0xF8 0x0D) for players with a gens type.
+    /// Packet: C1 [len] F8 0D [count] { [idHi] [idLo] [gensType] } ...
+    /// </summary>
+    private async ValueTask SendGensInfoAsync(IEnumerable<Player> newPlayers)
+    {
+        var connection = this.Player.Connection;
+        if (connection is null)
+        {
+            return;
+        }
+
+        var gensPlayers = newPlayers
+            .Where(p => p.SelectedCharacter?.GensType is not null and not 0)
+            .ToList();
+
+        if (gensPlayers.Count == 0)
+        {
+            return;
+        }
+
+        int Write()
+        {
+            var size = 5 + (gensPlayers.Count * 3);
+            var span = connection.Output.GetSpan(size)[..size];
+            span[0] = 0xC1;
+            span[1] = (byte)size;
+            span[2] = 0xF8;
+            span[3] = 0x0D;
+            span[4] = (byte)gensPlayers.Count;
+            int offset = 5;
+            foreach (var gp in gensPlayers)
+            {
+                var id = gp.GetId(this.Player);
+                span[offset] = (byte)(id >> 8);
+                span[offset + 1] = (byte)(id & 0xFF);
+                span[offset + 2] = gp.SelectedCharacter!.GensType;
+                offset += 3;
+            }
+
+            return size;
         }
 
         await connection.SendAsync(Write).ConfigureAwait(false);
