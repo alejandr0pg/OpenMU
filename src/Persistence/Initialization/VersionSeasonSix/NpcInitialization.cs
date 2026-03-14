@@ -247,6 +247,7 @@ internal partial class NpcInitialization : Version095d.NpcInitialization
             var def = this.Context.CreateNew<MonsterDefinition>();
             def.Number = 385;
             def.Designation = "Mirage";
+            def.NpcWindow = NpcWindow.IllusionTemple;
             def.ObjectKind = NpcObjectKind.PassiveNpc;
             this.GameConfiguration.Monsters.Add(def);
             def.SetGuid(def.Number);

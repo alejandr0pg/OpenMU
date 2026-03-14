@@ -41,7 +41,7 @@ public class GuildKickPlayerAction
             return;
         }
 
-        if (player.Account!.SecurityCode is null || player.Account.SecurityCode != securityCode)
+        if (player.Account!.SecurityCode is not null && player.Account.SecurityCode != securityCode)
         {
             await player.ShowLocalizedBlueMessageAsync(nameof(PlayerMessage.WrongSecurityCode)).ConfigureAwait(false);
             player.Logger.LogDebug("Wrong Security Code attempt, Player: {0}", player.SelectedCharacter?.Name);
