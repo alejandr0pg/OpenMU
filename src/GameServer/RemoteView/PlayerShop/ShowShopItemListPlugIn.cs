@@ -61,7 +61,13 @@ public class ShowShopItemListPlugIn : IShowShopItemListPlugIn
             {
                 var itemBlock = packet[i];
                 itemBlock.ItemSlot = item.ItemSlot;
-                itemBlock.Price = (uint)(item.StorePrice ?? 0);
+                var rawPrice = (uint)(item.StorePrice ?? 0);
+                if (item.StorePriceCurrency == 1)
+                {
+                    rawPrice |= 0x80000000u;
+                }
+
+                itemBlock.Price = rawPrice;
                 itemSerializer.SerializeItem(itemBlock.ItemData, item);
                 i++;
             }

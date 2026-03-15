@@ -18,7 +18,8 @@ public class SetItemPriceAction
     /// <param name="player">The player.</param>
     /// <param name="slot">The slot of the item in the store (0 to 31).</param>
     /// <param name="price">The price.</param>
-    public async ValueTask SetPriceAsync(Player player, byte slot, int price)
+    /// <param name="currency">The currency type. 0 = Zen, 1 = Lumís.</param>
+    public async ValueTask SetPriceAsync(Player player, byte slot, int price, byte currency = 0)
     {
         ItemPriceResult result;
         if (player.Level < 6)
@@ -33,6 +34,7 @@ public class SetItemPriceAction
             if (item != null)
             {
                 item.StorePrice = price > 0 ? price : (int?)null;
+                item.StorePriceCurrency = price > 0 ? currency : (byte)0;
                 result = price >= 0 ? ItemPriceResult.Success : ItemPriceResult.PriceNegative;
             }
         }

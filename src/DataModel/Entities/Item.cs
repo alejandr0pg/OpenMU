@@ -63,6 +63,11 @@ public partial class Item
     public int? StorePrice { get; set; }
 
     /// <summary>
+    /// Gets or sets the store price currency type. 0 = Zen, 1 = Lumís.
+    /// </summary>
+    public byte StorePriceCurrency { get; set; }
+
+    /// <summary>
     /// Gets or sets the pet experience.
     /// Only applies, if this item is actually a trainable pet.
     /// </summary>

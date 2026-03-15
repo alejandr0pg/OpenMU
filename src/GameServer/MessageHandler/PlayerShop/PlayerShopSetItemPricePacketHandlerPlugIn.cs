@@ -32,7 +32,8 @@ internal class PlayerShopSetItemPricePacketHandlerPlugIn : ISubPacketHandlerPlug
     public async ValueTask HandlePacketAsync(Player player, Memory<byte> packet)
     {
         PlayerShopSetItemPrice message = packet;
-        player.Logger.LogDebug("Player [{0}] sets price of slot {1} to {2}", player.SelectedCharacter?.Name, message.ItemSlot, message.Price);
-        await this._setPriceAction.SetPriceAsync(player, message.ItemSlot, (int)message.Price).ConfigureAwait(false);
+        byte currency = packet.Length > 8 ? packet.Span[8] : (byte)0;
+        player.Logger.LogDebug("Player [{0}] sets price of slot {1} to {2} (currency: {3})", player.SelectedCharacter?.Name, message.ItemSlot, message.Price, currency);
+        await this._setPriceAction.SetPriceAsync(player, message.ItemSlot, (int)message.Price, currency).ConfigureAwait(false);
     }
 }
