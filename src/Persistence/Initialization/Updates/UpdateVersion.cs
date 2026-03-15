@@ -359,4 +359,9 @@ public enum UpdateVersion
     /// The version of the <see cref="AddMissingNpcsPlugIn"/>.
     /// </summary>
     AddMissingNpcs = 70,
+
+    /// <summary>
+    /// The version of the <see cref="UpdateNpcWindowsPlugIn"/>.
+    /// </summary>
+    UpdateNpcWindows = 71,
 }
