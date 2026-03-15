@@ -18,6 +18,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\AttributeSystem\MUnique.OpenMU.AttributeSystem.csproj" />
     <ProjectReference Include="..\DataModel\MUnique.OpenMU.DataModel.csproj" />
     <ProjectReference Include="..\GameLogic\MUnique.OpenMU.GameLogic.csproj" />

@@ -364,4 +364,9 @@ public enum UpdateVersion
     /// The version of the <see cref="UpdateNpcWindowsPlugIn"/>.
     /// </summary>
     UpdateNpcWindows = 71,
+
+    /// <summary>
+    /// The version of the <see cref="AddLumisShopDataPlugIn"/>.
+    /// </summary>
+    AddLumisShopData = 72,
 }
