@@ -34,7 +34,6 @@ internal class RouletteBetHandlerPlugIn : IPacketHandlerPlugIn
     private const int ResponsePacketLength = 18;
 
     private const long MinBet = 50_000;
-    private const long MaxBet = 5_000_000;
 
     private readonly Random _rng = new();
 
@@ -68,11 +67,12 @@ internal class RouletteBetHandlerPlugIn : IPacketHandlerPlugIn
             return;
         }
 
-        if (betAmount is < MinBet or > MaxBet)
+        var maxBet = MUnique.OpenMU.GameLogic.PlugIns.VipHelper.MaxRouletteBet(player);
+        if (betAmount < MinBet || betAmount > maxBet)
         {
             player.Logger.LogWarning(
                 "Roulette rejected: bet {Bet} out of range [{Min}..{Max}].",
-                betAmount, MinBet, MaxBet);
+                betAmount, MinBet, maxBet);
             return;
         }
 

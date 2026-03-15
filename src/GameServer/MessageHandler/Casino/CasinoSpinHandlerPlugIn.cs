@@ -30,7 +30,6 @@ internal class CasinoSpinHandlerPlugIn : IPacketHandlerPlugIn
     private const int ResponseLength = 16; // C3(1) + len(1) + main(1) + sub(1) + r1-r3(3) + win(8) + zen(4) = 19... recalc
 
     private const int MinBet = 10_000;
-    private const int MaxBet = 1_000_000;
 
     // C3(1) + len(1) + main(1) + sub(1) + r1(1) + r2(1) + r3(1) + winAmount(8) + newZen(4) = 18
     private const int ResponsePacketLength = 18;
@@ -59,11 +58,12 @@ internal class CasinoSpinHandlerPlugIn : IPacketHandlerPlugIn
 
         var betAmount = BinaryPrimitives.ReadInt64LittleEndian(span[4..]);
 
-        if (betAmount is < MinBet or > MaxBet)
+        var maxBet = MUnique.OpenMU.GameLogic.PlugIns.VipHelper.MaxSlotBet(player);
+        if (betAmount < MinBet || betAmount > maxBet)
         {
             player.Logger.LogWarning(
                 "Casino spin rejected: bet {Bet} out of range [{Min}..{Max}].",
-                betAmount, MinBet, MaxBet);
+                betAmount, MinBet, maxBet);
             return;
         }
 
