@@ -773,8 +773,8 @@ internal partial class NpcInitialization : Version095d.NpcInitialization
         {
             var def = this.Context.CreateNew<MonsterDefinition>();
             def.Number = 566;
-            def.Designation = "Mercenary Guild Felicia";
-            def.NpcWindow = NpcWindow.NpcDialog;
+            def.Designation = "Casino Felicia";
+            def.NpcWindow = NpcWindow.Casino;
             def.ObjectKind = NpcObjectKind.PassiveNpc;
             this.GameConfiguration.Monsters.Add(def);
             def.SetGuid(def.Number);

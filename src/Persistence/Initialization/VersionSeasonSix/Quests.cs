@@ -332,7 +332,7 @@ internal class Quests : InitializerBase
         dropItemGroup.SetGuid(quest.Number, itemNumber, quest.QualifiedCharacter?.Number ?? 0);
         dropItemGroup.Description = $"Quest Item '{itemRequirement.Item.Name}' ({quest.QualifiedCharacter?.Name})";
         dropItemGroup.PossibleItems.Add(itemRequirement.Item);
-        dropItemGroup.Chance = 10.0 / 10000.0;
+        dropItemGroup.Chance = 300.0 / 10000.0;
         dropItemGroup.ItemLevel = itemLevel;
 
         itemRequirement.DropItemGroup = dropItemGroup;

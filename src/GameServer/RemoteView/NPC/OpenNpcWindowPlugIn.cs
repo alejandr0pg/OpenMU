@@ -37,10 +37,39 @@ public class OpenNpcWindowPlugIn : IOpenNpcWindowPlugIn
                 await this._player.Connection.SendOpenNpcDialogAsync(this._player.OpenedNpc.Definition.Number.ToUnsigned(), 0).ConfigureAwait(false);
             }
         }
+        else if (window == NpcWindow.Casino)
+        {
+            await this.SendCasinoOpenAsync().ConfigureAwait(false);
+        }
         else
         {
             await this._player.Connection.SendNpcWindowResponseAsync(Convert(window)).ConfigureAwait(false);
         }
+    }
+
+    private async ValueTask SendCasinoOpenAsync()
+    {
+        var connection = this._player.Connection;
+        if (connection is null)
+        {
+            return;
+        }
+
+        // Custom packet 0xFA sub 0x10: Casino open + Lumis balance
+        const int len = 14;
+        await connection.SendAsync(() =>
+        {
+            var span = connection.Output.GetSpan(len)[..len];
+            span[0] = 0xC3;
+            span[1] = (byte)len;
+            span[2] = 0xFA;
+            span[3] = 0x10;
+            var lumis = this._player.Account?.LumisBalance ?? 0;
+            System.Buffers.Binary.BinaryPrimitives.WriteInt64LittleEndian(span[4..], lumis);
+            span[12] = (byte)(this._player.Account?.VipExpiresAt > DateTime.UtcNow ? 1 : 0);
+            span[13] = 0;
+            return len;
+        }).ConfigureAwait(false);
     }
 
     private static NpcWindowResponse.NpcWindow Convert(NpcWindow window)

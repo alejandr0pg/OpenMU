@@ -354,4 +354,9 @@ public enum UpdateVersion
     /// The version of the <see cref="FixSkillDefinitionsPlugIn"/>.
     /// </summary>
     FixSkillDefinitions = 69,
+
+    /// <summary>
+    /// The version of the <see cref="AddMissingNpcsPlugIn"/>.
+    /// </summary>
+    AddMissingNpcs = 70,
 }

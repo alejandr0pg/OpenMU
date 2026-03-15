@@ -135,6 +135,7 @@ public class TalkNpcAction
                 break;
             case NpcWindow.ChaosMachine:
             case NpcWindow.RemoveJohOption:
+            case NpcWindow.Casino:
                 await player.InvokeViewPlugInAsync<IOpenNpcWindowPlugIn>(p => p.OpenNpcWindowAsync(npcStats.NpcWindow)).ConfigureAwait(false);
                 break;
             default:

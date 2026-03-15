@@ -165,6 +165,11 @@ public enum NpcWindow
     /// The dialog for the legacy quest system.
     /// </summary>
     LegacyQuest,
+
+    /// <summary>
+    /// The casino window (Lumís system).
+    /// </summary>
+    Casino,
 }
 
 /// <summary>

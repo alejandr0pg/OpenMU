@@ -126,6 +126,16 @@ public class Account
     public bool IsVaultExtended { get; set; }
 
     /// <summary>
+    /// Gets or sets the Lumís virtual currency balance.
+    /// </summary>
+    public long LumisBalance { get; set; }
+
+    /// <summary>
+    /// Gets or sets the VIP expiration date.
+    /// </summary>
+    public DateTime? VipExpiresAt { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether this instance is a template account
     /// and therefore read-only within the game server.
     /// </summary>

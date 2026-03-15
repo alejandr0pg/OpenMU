@@ -585,4 +585,46 @@ internal partial class NpcInitialization
         storage.SetGuid(number);
         return storage;
     }
+
+    private ItemStorage CreateZyroTestStore(short number)
+    {
+        List<Item> itemList = new ()
+        {
+            // Row 1: Jewels
+            this.ItemHelper.CreateItem(0, 15, 12, 1, 0),   // Jewel of Chaos
+            this.ItemHelper.CreateItem(1, 13, 14, 1, 0),   // Jewel of Bless
+            this.ItemHelper.CreateItem(2, 14, 14, 1, 0),   // Jewel of Soul
+            this.ItemHelper.CreateItem(3, 16, 14, 1, 0),   // Jewel of Life
+            this.ItemHelper.CreateItem(4, 22, 14, 1, 0),   // Jewel of Creation
+            this.ItemHelper.CreateItem(5, 31, 14, 1, 0),   // Jewel of Guardian
+            this.ItemHelper.CreateItem(6, 41, 14, 1, 0),   // Gemstone
+            this.ItemHelper.CreateItem(7, 42, 14, 1, 0),   // Jewel of Harmony
+
+            // Row 2: Refine stones + wing materials
+            this.ItemHelper.CreateItem(8, 43, 14, 1, 0),   // Lower Refine Stone
+            this.ItemHelper.CreateItem(9, 44, 14, 1, 0),   // Higher Refine Stone
+            this.ItemHelper.CreateItem(10, 14, 13, 1, 0),  // Loch's Feather
+            this.ItemHelper.CreateItem(11, 52, 13, 1, 0),  // Flame of Condor
+            this.ItemHelper.CreateItem(12, 53, 13, 1, 0),  // Feather of Condor
+
+            // Row 3: Seeds
+            this.ItemHelper.CreateItem(16, 60, 12, 1, 0),  // Seed (Fire)
+            this.ItemHelper.CreateItem(17, 61, 12, 1, 0),  // Seed (Water)
+            this.ItemHelper.CreateItem(18, 62, 12, 1, 0),  // Seed (Ice)
+            this.ItemHelper.CreateItem(19, 63, 12, 1, 0),  // Seed (Wind)
+            this.ItemHelper.CreateItem(20, 64, 12, 1, 0),  // Seed (Lightning)
+            this.ItemHelper.CreateItem(21, 65, 12, 1, 0),  // Seed (Earth)
+
+            // Row 4: Spheres
+            this.ItemHelper.CreateItem(24, 70, 12, 1, 0),  // Sphere (Mono)
+            this.ItemHelper.CreateItem(25, 71, 12, 1, 0),  // Sphere (Di)
+            this.ItemHelper.CreateItem(26, 72, 12, 1, 0),  // Sphere (Tri)
+            this.ItemHelper.CreateItem(27, 73, 12, 1, 0),  // Sphere (4)
+            this.ItemHelper.CreateItem(28, 74, 12, 1, 0),  // Sphere (5)
+        };
+
+        var storage = this.CreateMerchantStore(itemList);
+        storage.SetGuid(number);
+        return storage;
+    }
 }
