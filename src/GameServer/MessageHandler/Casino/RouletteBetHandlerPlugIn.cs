@@ -21,7 +21,8 @@ using MUnique.OpenMU.PlugIns;
 [Display(Name = "Roulette Bet Handler",
     Description = "Handles roulette bet request packets (0xFA 0x15).")]
 [Guid("D4F6A2E8-3B1C-4E9D-A5F7-8C2E6D0B4A19")]
-internal class RouletteBetHandlerPlugIn : IPacketHandlerPlugIn
+[BelongsToGroup(CasinoGroupHandlerPlugIn.GroupKey)]
+public class RouletteBetHandlerPlugIn : ISubPacketHandlerPlugIn
 {
     private const byte MainCode = 0xFA;
     private const byte SubCode = 0x15;
@@ -41,7 +42,7 @@ internal class RouletteBetHandlerPlugIn : IPacketHandlerPlugIn
     public bool IsEncryptionExpected => false;
 
     /// <inheritdoc/>
-    public byte Key => MainCode;
+    public byte Key => SubCode;
 
     /// <inheritdoc/>
     public async ValueTask HandlePacketAsync(Player player, Memory<byte> packet)

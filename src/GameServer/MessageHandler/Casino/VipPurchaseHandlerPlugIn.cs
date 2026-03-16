@@ -20,7 +20,8 @@ using MUnique.OpenMU.PlugIns;
 [Display(Name = "VIP Purchase Handler",
     Description = "Handles VIP purchase request packets (0xFA 0x30).")]
 [Guid("D4F2A8C1-7B3E-4D6A-9E1F-5C8B2A4D6F0E")]
-internal class VipPurchaseHandlerPlugIn : IPacketHandlerPlugIn
+[BelongsToGroup(CasinoGroupHandlerPlugIn.GroupKey)]
+public class VipPurchaseHandlerPlugIn : ISubPacketHandlerPlugIn
 {
     private const byte MainCode = 0xFA;
     private const byte SubCode = 0x30;
@@ -39,7 +40,7 @@ internal class VipPurchaseHandlerPlugIn : IPacketHandlerPlugIn
     public bool IsEncryptionExpected => false;
 
     /// <inheritdoc/>
-    public byte Key => MainCode;
+    public byte Key => SubCode;
 
     /// <inheritdoc/>
     public async ValueTask HandlePacketAsync(Player player, Memory<byte> packet)

@@ -20,7 +20,8 @@ using MUnique.OpenMU.PlugIns;
 [Display(Name = "Lumis Shop Catalog Handler",
     Description = "Handles Lumis shop catalog request packets (0xFA 0x02).")]
 [Guid("B1C2D3E4-F5A6-4B7C-8D9E-0F1A2B3C4D5E")]
-internal class LumisShopCatalogHandlerPlugIn : IPacketHandlerPlugIn
+[BelongsToGroup(CasinoGroupHandlerPlugIn.GroupKey)]
+public class LumisShopCatalogHandlerPlugIn : ISubPacketHandlerPlugIn
 {
     private const byte MainCode = 0xFA;
     private const byte SubCode = 0x02;
@@ -29,7 +30,7 @@ internal class LumisShopCatalogHandlerPlugIn : IPacketHandlerPlugIn
     public bool IsEncryptionExpected => false;
 
     /// <inheritdoc/>
-    public byte Key => MainCode;
+    public byte Key => SubCode;
 
     /// <inheritdoc/>
     public async ValueTask HandlePacketAsync(Player player, Memory<byte> packet)
