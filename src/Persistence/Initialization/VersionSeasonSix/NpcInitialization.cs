@@ -956,6 +956,7 @@ internal partial class NpcInitialization : Version095d.NpcInitialization
             def.Designation = "Jeweler Raul";
             def.NpcWindow = NpcWindow.Merchant;
             def.ObjectKind = NpcObjectKind.PassiveNpc;
+            def.MerchantStore = this.CreateJewelerRaulStore(def.Number);
             def.SetGuid(def.Number);
             this.GameConfiguration.Monsters.Add(def);
         }

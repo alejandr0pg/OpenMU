@@ -35,23 +35,35 @@ public class LumisShopCatalogHandlerPlugIn : ISubPacketHandlerPlugIn
     /// <inheritdoc/>
     public async ValueTask HandlePacketAsync(Player player, Memory<byte> packet)
     {
+        player.Logger.LogWarning("LumisShopCatalog: handler invoked, packet len={Len}", packet.Length);
+
         if (packet.Length < 4 || packet.Span[3] != SubCode)
         {
+            player.Logger.LogWarning("LumisShopCatalog: bad packet, span[3]={Sub}", packet.Length >= 4 ? packet.Span[3] : -1);
             return;
         }
 
         if (player.PlayerState.CurrentState != PlayerState.EnteredWorld)
         {
-            player.Logger.LogWarning("Lumis catalog rejected: not in EnteredWorld.");
+            player.Logger.LogWarning("LumisShopCatalog: rejected, not in EnteredWorld.");
             return;
         }
 
-        var catalogPacket = await LumisShopCatalogCache.GetOrBuildPacketAsync()
-            .ConfigureAwait(false);
+        byte[]? catalogPacket;
+        try
+        {
+            catalogPacket = await LumisShopCatalogCache.GetOrBuildPacketAsync()
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            player.Logger.LogWarning(ex, "LumisShopCatalog: DB error.");
+            return;
+        }
 
         if (catalogPacket is null)
         {
-            player.Logger.LogWarning("Lumis catalog: failed to load from DB.");
+            player.Logger.LogWarning("LumisShopCatalog: catalog is null.");
             return;
         }
 
@@ -66,6 +78,7 @@ public class LumisShopCatalogHandlerPlugIn : ISubPacketHandlerPlugIn
             return;
         }
 
+        player.Logger.LogWarning("LumisShopCatalog: sending {Len} bytes", catalogPacket.Length);
         var data = catalogPacket;
         await connection.SendAsync(() =>
         {

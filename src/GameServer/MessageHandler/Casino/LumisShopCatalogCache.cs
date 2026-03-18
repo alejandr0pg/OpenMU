@@ -177,7 +177,7 @@ internal static class LumisShopCatalogCache
 
         var buffer = new byte[totalLen];
         var s = buffer.AsSpan();
-        s[0] = 0xC4;
+        s[0] = 0xC2;
         BinaryPrimitives.WriteUInt16BigEndian(s[1..], (ushort)totalLen);
         s[3] = 0xFA;
         s[4] = 0x03;

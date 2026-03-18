@@ -369,4 +369,9 @@ public enum UpdateVersion
     /// The version of the <see cref="AddLumisShopDataPlugIn"/>.
     /// </summary>
     AddLumisShopData = 72,
+
+    /// <summary>
+    /// The version of the <see cref="AddJewelerRaulStorePlugIn"/>.
+    /// </summary>
+    AddJewelerRaulStore = 73,
 }
