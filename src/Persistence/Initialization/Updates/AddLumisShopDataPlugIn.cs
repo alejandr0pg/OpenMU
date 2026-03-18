@@ -33,7 +33,7 @@ public class AddLumisShopDataPlugIn : UpdatePlugInBase
     public override string DataInitializationKey => VersionSeasonSix.DataInitialization.Id;
 
     /// <inheritdoc />
-    public override bool IsMandatory => false;
+    public override bool IsMandatory => true;
 
     /// <inheritdoc />
     public override DateTime CreatedAt => new(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc);
