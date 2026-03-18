@@ -50,6 +50,7 @@ internal static class LumisShopCatalogCache
             await using var conn = new NpgsqlConnection(connStr);
             await conn.OpenAsync().ConfigureAwait(false);
 
+            await EnsureSeedDataAsync(conn).ConfigureAwait(false);
             var categories = await LoadCategoriesAsync(conn).ConfigureAwait(false);
             var items = await LoadItemsAsync(conn).ConfigureAwait(false);
 
@@ -79,6 +80,51 @@ internal static class LumisShopCatalogCache
         var user = Environment.GetEnvironmentVariable("DB_ADMIN_USER") ?? "postgres";
         var pass = Environment.GetEnvironmentVariable("DB_ADMIN_PW") ?? "admin";
         return $"Server={host};Port=5432;User Id={user};Password={pass};Database=openmu;";
+    }
+
+    private static async Task EnsureSeedDataAsync(NpgsqlConnection conn)
+    {
+        await using var check = new NpgsqlCommand(
+            """SELECT count(*) FROM data."LumisShopCategory" """, conn);
+        var count = (long)(await check.ExecuteScalarAsync().ConfigureAwait(false))!;
+        if (count > 0)
+        {
+            return;
+        }
+
+        await using var seed = new NpgsqlCommand("""
+            INSERT INTO data."LumisShopCategory" ("Id", "Name", "DisplayOrder", "IconIndex")
+            VALUES
+                ('a0000001-0000-0000-0000-000000000001', 'Weapons',     0, 0),
+                ('a0000001-0000-0000-0000-000000000002', 'Armor',       1, 1),
+                ('a0000001-0000-0000-0000-000000000003', 'Wings',       2, 2),
+                ('a0000001-0000-0000-0000-000000000004', 'Consumables', 3, 3),
+                ('a0000001-0000-0000-0000-000000000005', 'Misc',        4, 4)
+            ON CONFLICT ("Id") DO NOTHING;
+
+            INSERT INTO data."LumisShopItem"
+                ("Id", "CategoryId", "ItemGroup", "ItemNumber", "ItemLevel",
+                 "LumisPrice", "IsActive", "IsFeatured", "DisplayOrder")
+            VALUES
+                ('b0000001-0000-0000-0000-000000000001', 'a0000001-0000-0000-0000-000000000001', 0, 19, 0, 500, true, true, 0),
+                ('b0000001-0000-0000-0000-000000000002', 'a0000001-0000-0000-0000-000000000001', 0, 21, 0, 800, true, false, 1),
+                ('b0000001-0000-0000-0000-000000000003', 'a0000001-0000-0000-0000-000000000001', 5, 7, 0, 600, true, false, 2),
+                ('b0000001-0000-0000-0000-000000000004', 'a0000001-0000-0000-0000-000000000002', 7, 15, 0, 400, true, false, 0),
+                ('b0000001-0000-0000-0000-000000000005', 'a0000001-0000-0000-0000-000000000002', 8, 15, 0, 400, true, false, 1),
+                ('b0000001-0000-0000-0000-000000000006', 'a0000001-0000-0000-0000-000000000002', 9, 15, 0, 400, true, false, 2),
+                ('b0000001-0000-0000-0000-000000000007', 'a0000001-0000-0000-0000-000000000002', 10, 15, 0, 400, true, false, 3),
+                ('b0000001-0000-0000-0000-000000000008', 'a0000001-0000-0000-0000-000000000002', 11, 15, 0, 400, true, false, 4),
+                ('b0000001-0000-0000-0000-000000000009', 'a0000001-0000-0000-0000-000000000003', 12, 0, 0, 2000, true, true, 0),
+                ('b0000001-0000-0000-0000-000000000010', 'a0000001-0000-0000-0000-000000000003', 12, 1, 0, 3000, true, false, 1),
+                ('b0000001-0000-0000-0000-000000000011', 'a0000001-0000-0000-0000-000000000003', 12, 2, 0, 3000, true, false, 2),
+                ('b0000001-0000-0000-0000-000000000012', 'a0000001-0000-0000-0000-000000000004', 14, 0, 0, 100, true, false, 0),
+                ('b0000001-0000-0000-0000-000000000013', 'a0000001-0000-0000-0000-000000000004', 14, 1, 0, 100, true, false, 1),
+                ('b0000001-0000-0000-0000-000000000014', 'a0000001-0000-0000-0000-000000000004', 14, 3, 0, 150, true, false, 2),
+                ('b0000001-0000-0000-0000-000000000015', 'a0000001-0000-0000-0000-000000000005', 14, 13, 0, 200, true, false, 0),
+                ('b0000001-0000-0000-0000-000000000016', 'a0000001-0000-0000-0000-000000000005', 14, 14, 0, 5000, true, true, 1)
+            ON CONFLICT ("Id") DO NOTHING;
+            """, conn);
+        await seed.ExecuteNonQueryAsync().ConfigureAwait(false);
     }
 
     private static async Task<List<LumisShopCategory>> LoadCategoriesAsync(NpgsqlConnection conn)
