@@ -26,4 +26,21 @@ public static class ConnectionExtensions
         connection.Output.Advance(length);
         await connection.Output.FlushAsync().ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Writes a packet to the output buffer without flushing.
+    /// Relies on <see cref="ConnectionAutoFlusher"/> to flush periodically.
+    /// </summary>
+    public static async ValueTask SendWithoutFlushAsync(this IConnection connection, Func<int> packetBuilder)
+    {
+        if (!connection.Connected)
+        {
+            return;
+        }
+
+        using var l = await connection.OutputLock.LockAsync().ConfigureAwait(false);
+        var length = packetBuilder();
+        connection.Output.Advance(length);
+        ConnectionAutoFlusher.Instance.MarkDirty(connection);
+    }
 }

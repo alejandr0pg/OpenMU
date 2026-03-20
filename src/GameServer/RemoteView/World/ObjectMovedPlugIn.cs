@@ -28,6 +28,16 @@ public class ObjectMovedPlugIn : IObjectMovedPlugIn
 {
     private const short TeleportTargetNumber = 0x0F;
 
+    /// <summary>
+    /// Distance threshold (fraction of InfoRange) beyond which walk updates are throttled.
+    /// </summary>
+    private const float DistanceThrottleFraction = 0.7f;
+
+    /// <summary>
+    /// Counter for odd/even walk update throttling for far-away objects.
+    /// </summary>
+    private uint _walkUpdateCounter;
+
     private readonly RemotePlayer _player;
 
     /// <summary>
@@ -76,9 +86,38 @@ public class ObjectMovedPlugIn : IObjectMovedPlugIn
                 break;
 
             case MoveType.Walk:
+                if (this.ShouldThrottleWalk(obj))
+                {
+                    break;
+                }
+
                 await this.ObjectWalkedAsync(obj).ConfigureAwait(false);
                 break;
         }
+    }
+
+    /// <summary>
+    /// Determines whether this walk update should be skipped based on distance.
+    /// Objects beyond 70% of InfoRange only receive every other walk update.
+    /// </summary>
+    private bool ShouldThrottleWalk(ILocateable obj)
+    {
+        _walkUpdateCounter++;
+
+        var playerPos = this._player.Position;
+        int dx = Math.Abs(playerPos.X - obj.Position.X);
+        int dy = Math.Abs(playerPos.Y - obj.Position.Y);
+        int distance = Math.Max(dx, dy);
+
+        var infoRange = this._player.GameContext?.Configuration?.InfoRange ?? 20;
+        int threshold = (int)(infoRange * DistanceThrottleFraction);
+
+        if (distance > threshold && (_walkUpdateCounter & 1) == 0)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -113,7 +152,7 @@ public class ObjectMovedPlugIn : IObjectMovedPlugIn
             return size;
         }
 
-        await connection.SendAsync(Write).ConfigureAwait(false);
+        await connection.SendWithoutFlushAsync(Write).ConfigureAwait(false);
     }
 
     private async ValueTask ObjectWalkedAsync(ILocateable obj)

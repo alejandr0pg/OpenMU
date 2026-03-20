@@ -60,7 +60,7 @@ public class ObjectMovedPlugInExtended : ObjectMovedPlugIn
             return size;
         }
 
-        await connection.SendAsync(Write).ConfigureAwait(false);
+        await connection.SendWithoutFlushAsync(Write).ConfigureAwait(false);
     }
 
     private void SetStepData(ObjectWalkedExtendedRef walkPacket, Span<Direction> steps, int stepsSize)
