@@ -15,9 +15,9 @@ using System.Threading;
 public sealed class ConnectionAutoFlusher : IDisposable
 {
     /// <summary>
-    /// Flush interval in milliseconds (~60 Hz).
+    /// Flush interval in milliseconds (~120 Hz).
     /// </summary>
-    private const int FlushIntervalMs = 16;
+    private const int FlushIntervalMs = 8;
 
     private static readonly Lazy<ConnectionAutoFlusher> LazyInstance = new(() => new ConnectionAutoFlusher());
 
