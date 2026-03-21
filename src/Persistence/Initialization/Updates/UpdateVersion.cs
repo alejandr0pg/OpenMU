@@ -374,4 +374,9 @@ public enum UpdateVersion
     /// The version of the <see cref="AddJewelerRaulStorePlugIn"/>.
     /// </summary>
     AddJewelerRaulStore = 73,
+
+    /// <summary>
+    /// The version of the <see cref="AddCasinoFeliciaPlugIn"/>.
+    /// </summary>
+    AddCasinoFelicia = 74,
 }
