@@ -32,8 +32,8 @@ public class CasinoSpinHandlerPlugIn : ISubPacketHandlerPlugIn
 
     private const int MinBet = 10_000;
 
-    // C3(1) + len(1) + main(1) + sub(1) + r1(1) + r2(1) + r3(1) + winAmount(8) + newZen(4) = 18
-    private const int ResponsePacketLength = 18;
+    // C3(1) + len(1) + main(1) + sub(1) + r1(1) + r2(1) + r3(1) + winAmount(8) + newZen(4) = 19
+    private const int ResponsePacketLength = 19;
 
     private readonly Random _rng = new();
 
